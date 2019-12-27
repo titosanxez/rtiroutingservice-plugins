@@ -33,15 +33,15 @@
             <property>
                 <value>
                     <element>
-                        <name>rti.pyproc.module.name</name>
+                        <name>rti.routing.pyproc.module.name</name>
                         <value>myproc</value>
                     </element>
-<!--                    <element>
-                        <name>rti.pyproc.module.path</name>
-                        <value>/Users/asanchez/rti/community/rtiroutingservice-plugins/plugins/processors/pyprocessor/build</value>
-                    </element>-->
                     <element>
-                        <name>rti.pyproc.class_name</name>
+                        <name>rti.routing.pyproc.module.path</name>
+                        <value>$(PWD)/../example</value>
+                    </element>
+                    <element>
+                        <name>rti.routing.pyproc.class_name</name>
                         <value>MyProcessorPlugin</value>
                     </element>
                 </value>

@@ -5,14 +5,15 @@
  */
 
 /*
- * File:   PyOutput.hpp
+ * File:   PyInput.hpp
  * Author: asanchez
  *
- * Created on December 26, 2019, 9:59 PM
+ * Created on December 25, 2019, 7:24 PM
  */
 
-#ifndef PYOUTPUT_HPP
-    #define PYOUTPUT_HPP
+#ifndef PYINPUT_HPP
+#define PYINPUT_HPP
+
 
 #include "Python.h"
 #include <dds/core/xtypes/DynamicData.hpp>
@@ -22,34 +23,36 @@
 
 namespace rti { namespace routing { namespace py {
 
-class PyOutputType
+class PyInputType
 {
 public:
-    typedef RTI_RoutingServiceStreamWriterExt native_type;
+    typedef RTI_RoutingServiceStreamReaderExt native_type;
     static PyTypeObject* type();
+    static const std::string& name();
 };
 
-class PyOutput : public PyNativeWrapper<PyOutputType>
+class PyInput : public PyNativeWrapper<PyInputType>
 {
 public:
-    typedef RTI_RoutingServiceStreamWriterExt native_type;
+    typedef RTI_RoutingServiceStreamReaderExt native_type;
     typedef typename PyDataType::native_type native_data_type;
 
-    PyOutput(
-            RTI_RoutingServiceStreamWriterExt *native,
+    PyInput(
+            RTI_RoutingServiceStreamReaderExt *native,
             RTI_RoutingServiceRoute *native_route,
             RTI_RoutingServiceEnvironment *environment);
     RTI_RoutingServiceRoute *native_route();
 
-    static PyObject* name(PyOutput *self, PyObject *Py_UNUSED(ignored));
-    static PyObject* write(PyOutput *self, PyObject *args);
+    static PyObject* name(PyInput *self, PyObject *Py_UNUSED(ignored));
+    static PyObject* take(PyInput *self, PyObject *Py_UNUSED(ignored));
 
 private:
     RTI_RoutingServiceRoute *native_route_;
     RTI_RoutingServiceEnvironment *native_env_;
 };
 
+
 } } }
 
-#endif /* OUTPUT_HPP */
+#endif /* PYINPUT_HPP */
 

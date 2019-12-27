@@ -44,6 +44,13 @@ PyTypeObject *PyInfoType::type()
     return &PyInfo_g_type;
 }
 
+const std::string& PyInfoType::name()
+{
+    static std::string __name("SampleInfo");
+
+    return __name;
+}
+
 
 /*
  * --- PyData Python methods --------------------------------------------------
@@ -72,6 +79,13 @@ static PyTypeObject PyData_g_type = {
 PyTypeObject *PyDataType::type()
 {
     return &PyData_g_type;
+}
+
+const std::string& PyDataType::name()
+{
+    static std::string __name("SampleData");
+
+    return __name;
 }
 
 /*
@@ -156,6 +170,13 @@ PyTypeObject* PySampleType::type()
     return &PySample_g_type;
 }
 
+const std::string& PySampleType::name()
+{
+    static std::string __name("Sample");
+
+    return __name;
+}
+
 /*
  * --- PyLoanedSamples Python methods -----------------------------------------
  */
@@ -231,8 +252,8 @@ static PyTypeObject PyLoanedSamples_g_type = {
 
 void * PyLoanedSamples::operator new(size_t size)
 {
-    return PyLoanedSamples::type()->tp_alloc(
-            PyLoanedSamples::type(),
+    return PyLoanedSamplesType::type()->tp_alloc(
+            PyLoanedSamplesType::type(),
             size);
 }
 
@@ -245,7 +266,7 @@ void PyLoanedSamples::operator delete(void* object)
 PyLoanedSamples::PyLoanedSamples(Native& loaned_samples)
     : loaned_samples_(std::move(loaned_samples))
 {
-    PyObject_Init(this, PyLoanedSamples::type());
+    PyObject_Init(this, PyLoanedSamplesType::type());
 }
 
 PyLoanedSamples::Native& PyLoanedSamples::get()
@@ -253,9 +274,16 @@ PyLoanedSamples::Native& PyLoanedSamples::get()
     return loaned_samples_;
 }
 
-PyTypeObject* PyLoanedSamples::type()
+PyTypeObject* PyLoanedSamplesType::type()
 {
     return &PyLoanedSamples_g_type;
+}
+
+const std::string& PyLoanedSamplesType::name()
+{
+    static std::string __name("LoanedSamples");
+
+    return __name;
 }
 
 

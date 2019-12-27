@@ -151,6 +151,13 @@ PyTypeObject* PyRouteType::type()
     return &PyRoute_g_type;
 }
 
+const std::string& PyRouteType::name()
+{
+    static std::string __name("Route");
+
+    return __name;
+}
+
 
 } } }
 

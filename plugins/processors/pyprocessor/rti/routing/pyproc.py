@@ -21,6 +21,9 @@ class Processor(ABC):
     def on_data_available(self, route):
         NotImplemented
 
+    def on_periodic_event(self, route):
+        NotImplemented
+
 
 class ProcessorPlugin(ABC):
 

@@ -32,7 +32,7 @@ PyObject* PyOutput::write(PyOutput *self, PyObject *args)
     const RTI_RoutingServiceSampleInfo out_infos[1] = {
         const_cast<void *> (reinterpret_cast<const void *> (NULL))
     };
-    
+
     try {
         self->get()->write(
                 self->get()->stream_writer_data,
@@ -99,6 +99,14 @@ PyTypeObject* PyOutputType::type()
 {
     return &PyOutput_g_type;
 }
+
+const std::string& PyOutputType::name()
+{
+    static std::string __name("Output");
+
+    return __name;
+}
+
 
 
 } } }

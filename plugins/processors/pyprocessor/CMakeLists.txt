@@ -32,11 +32,11 @@ find_library(
 
 # Define the library that will provide the  Processor plugin
 add_library(pyproc
-    "${CMAKE_CURRENT_SOURCE_DIR}/PyLoanedSamples.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/PyInput.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/PyOutput.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/PyRoute.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/PyProcessor.cxx")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyLoanedSamples.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyInput.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyOutput.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyRoute.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyProcessor.cxx")
 
 # Set target properties for lang requirement output library name
 set_target_properties(pyproc

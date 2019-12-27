@@ -145,11 +145,19 @@ void PyProcessor::forward_on_route_event(
 
         }
             break;
-//
-//        case RTI_ROUTING_SERVICE_ROUTE_EVENT_PERIODIC_ACTION:
-//
-//            forwarder->processor_->on_periodic_action(forwarder->route());
-//            break;
+
+        case RTI_ROUTING_SERVICE_ROUTE_EVENT_PERIODIC_ACTION:
+        {
+            if (PyObject_CallMethod(
+                    forwarder->py_processor_,
+                    "on_periodic_event",
+                    "O",
+                    forwarder->py_route_) == NULL) {
+                PyErr_Print();
+                throw dds::core::Error("on_periodic_event: error calling Python processor");
+            }
+        }
+            break;
 
         case RTI_ROUTING_SERVICE_ROUTE_EVENT_INPUT_ENABLED:
         {
@@ -258,7 +266,9 @@ void PyProcessor::forward_on_route_event(
         }
             break;
 
-
+        default:
+            // nothing to do
+            break;
         }
 
     } catch (const std::exception& ex) {
@@ -278,57 +288,6 @@ void PyProcessor::forward_on_route_event(
 /*
  * --- PyProcessorPlugin --------------------------------------------------
  */
-
-void add_type(
-    const char *name,
-    PyTypeObject *type_object)
-{
-    if (PyType_Ready(type_object) < 0) {
-        PyErr_Print();
-        return;
-    }
-    Py_INCREF(type_object);
-    PyObjectGuard type_guard = (PyObject *) type_object;
-
-    // Import pyproc module
-    PyObject *pyproc = PyImport_AddModule("pyproc");
-    if (pyproc == NULL) {
-        PyErr_Print();
-        throw dds::core::Error(
-                "load_module: error importing py proc module");
-    }
-
-    if (PyModule_AddObject(
-            pyproc,
-            name,
-            (PyObject *) type_object) == -1) {
-        PyErr_Print();
-        return;
-    }
-}
-
-PyObject* find_pyproc_type(const char *name)
-{
-    PyObject *pyproc_module = PyImport_AddModule("pyproc");
-    if (pyproc_module == NULL) {
-        PyErr_Print();
-        throw dds::core::Error(
-                "load_module: error importing pyproc module");
-    }
-
-    PyObject *pyproc_dict = PyModule_GetDict(pyproc_module);
-    if (pyproc_dict == NULL) {
-        PyErr_Print();
-        throw dds::core::Error("load_module: error getting pyrpoc dictionary");
-    }
-
-    //PyObject_Print(plugin_class, stdout, 0);
-    return PyDict_GetItemString(
-            pyproc_dict,
-            name);
-}
-
-
 PyProcessorPluginProperty::PyProcessorPluginProperty()
 {
 
@@ -343,6 +302,7 @@ PyProcessorPluginProperty::PyProcessorPluginProperty(
 {
 
 }
+
 
 void PyProcessorPluginProperty::class_name(const std::string& class_name)
 {
@@ -374,42 +334,65 @@ const std::string& PyProcessorPluginProperty::module_path()
     return module_path_;
 }
 
+const std::string PyProcessorPlugin::BASE_PROCESSOR_MODULE_NAME =
+        "rti.routing.pyproc";
+
+const std::string PyProcessorPlugin::BASE_PROCESSOR_TYPE_NAME =
+        "Processor";
 
 const std::string PyProcessorPlugin::MODULE_PROPERTY_NAME =
-        "rti.pyproc.module.name";
+        "rti.routing.pyproc.module.name";
 
 const std::string PyProcessorPlugin::MODULE_PATH_PROPERTY_NAME =
-        "rti.pyproc.module.path";
+        "rti.routing.pyproc.module.path";
 
 const std::string PyProcessorPlugin::MODULE_PATH_VALUE_DEFAULT = ".";
 
 const std::string PyProcessorPlugin::CLASS_NAME_PROPERTY_NAME =
-        "rti.pyproc.class_name";
+        "rti.routing.pyproc.class_name";
+
+
+template<typename PYOBJECTTYPE>
+void PyProcessorPlugin::add_type()
+{
+    if (PyType_Ready(PYOBJECTTYPE::type()) < 0) {
+        PyErr_Print();
+        return;
+    }
+    Py_INCREF(PYOBJECTTYPE::type());
+    PyObjectGuard type_guard = (PyObject *) PYOBJECTTYPE::type();
+    if (PyModule_AddObject(
+            pyproc_module_,
+            PYOBJECTTYPE::name().c_str(),
+            type_guard.get()) == -1) {
+        PyErr_Print();
+        throw dds::core::Error(
+                "add_type: error inserting type="
+                + PYOBJECTTYPE::name()
+                + "in module="
+                + BASE_PROCESSOR_MODULE_NAME);
+    }
+    type_guard.release();
+}
+
+
+PyObject* PyProcessorPlugin::find_pyproc_type(const std::string& name)
+{
+    PyObject *pyproc_type = PyDict_GetItemString(
+            PyModule_GetDict(pyproc_module_),
+            name.c_str());
+    if (pyproc_type == NULL) {
+        PyErr_Print();
+        throw dds::core::Error(
+                "load_module: error getting type="
+                + name);
+    }
+
+    return pyproc_type;
+}
 
 void PyProcessorPlugin::load_module()
 {
-    //   FILE *file = RTIOsapi_fileOpen("../PyProcessor.py", "r");
-    //   if (file == NULL) {
-    //       PyProcessor_log(PyExc_Exception, "error opening plugin file");
-    //       throw dds::core::Error("load_module: error opening plugin file");
-    //   }
-    //   PyRun_SimpleFileEx(file, "", 1);
-    //   if ( == NULL) {
-    //       PyProcessor_log(PyExc_Exception, "error reading plugin file");
-    //       throw dds::core::Error("load_module: error reading plugin file");
-    //   }
-    PyObject *main_module = PyImport_AddModule("__main__");
-    if (main_module == NULL) {
-        PyErr_Print();
-        throw dds::core::Error("load_module: error addin main module");
-    }
-    PyObject *main_dict = PyModule_GetDict(main_module);
-    if (main_dict == NULL) {
-        PyErr_Print();
-        throw dds::core::Error("load_module: error getting main dictionary");
-    }
-    //gobal_dict_ = PyDict_Copy(main_dict);
-
     // Import user module
     PyObject *user_module = PyImport_ImportModule(property_.module().c_str());
     if (user_module == NULL) {
@@ -424,14 +407,30 @@ void PyProcessorPlugin::load_module()
         throw dds::core::Error("load_module: error getting user dictionary");
     }
 
+    // Obtain rti.routing.pyproc
+    pyproc_module_ = PyImport_AddModule(BASE_PROCESSOR_MODULE_NAME.c_str());
+    if (pyproc_module_ == NULL) {
+        PyErr_Print();
+        throw dds::core::Error(
+                "load_module: error importing "
+                + BASE_PROCESSOR_MODULE_NAME
+                + " module");
+    }
+
+    // Obtain pyproc.Processor type
+    pyproc_type_= find_pyproc_type(BASE_PROCESSOR_TYPE_NAME);
+    if (pyproc_type_ == NULL) {
+        PyErr_Print();
+        throw dds::core::Error("load_module: error getting Processor type");
+    }
+
     // Add processor types to module
-    add_type("Route", PyRouteType::type());
-    add_type("Input", PyInputType::type());
-    add_type("Output", PyOutputType::type());
-    add_type("LoanedSamples", PyLoanedSamples::type());
-    add_type("Sample", PySampleType::type());
-    add_type("SampleData", PyDataType::type());
-    add_type("SampleInfo", PyInfoType::type());
+    add_type<PyRouteType>();
+    add_type<PyOutputType>();
+    add_type<PyLoanedSamplesType>();
+    add_type<PySampleType>();
+    add_type<PyDataType>();
+    add_type<PyInfoType>();
 
 
     //PyObject_Print(plugin_class, stdout, 0);
@@ -449,8 +448,9 @@ void PyProcessorPlugin::load_module()
 
 
 PyProcessorPlugin::PyProcessorPlugin(
-        const rti::routing::PropertySet& properties)
-        : gobal_dict_(NULL),
+        const struct RTI_RoutingServiceProperties *native_properties)
+        : pyproc_module_(NULL),
+          pyproc_type_(NULL),
           create_processor_(NULL)
 {
     static PythonInitializer __python_init;
@@ -458,21 +458,20 @@ PyProcessorPlugin::PyProcessorPlugin(
     // Check module properties
     property_.module_path(MODULE_PATH_VALUE_DEFAULT);
 
-
-    PyList_Append(
-            PySys_GetObject("path"),
-            Py_BuildValue("s", "../"));
-
-    for (auto it : properties) {
-        if (it.first == MODULE_PATH_PROPERTY_NAME) {
-            property_.module_path(it.second);
-        } else if (it.first == MODULE_PROPERTY_NAME) {
-            property_.module(it.second);
-        } else if (it.first == CLASS_NAME_PROPERTY_NAME) {
-            property_.class_name(it.second);
+    for (int i = 0; i < native_properties->count; i++) {
+        if (MODULE_PATH_PROPERTY_NAME
+                == native_properties->properties[i].name) {
+            property_.module_path((char *) native_properties->properties[i].value);
+        } else if (MODULE_PROPERTY_NAME
+                == native_properties->properties[i].name) {
+            property_.module((char *) native_properties->properties[i].value);
+        } else if (CLASS_NAME_PROPERTY_NAME
+                == native_properties->properties[i].name) {
+             property_.class_name((char *) native_properties->properties[i].value);
         }
     }
 
+    /* update python global path so it can find the user module */
     PyObject *sys_path = PySys_GetObject("path");
     assert(sys_path != NULL);
     PyObject *py_module_path = Py_BuildValue("s", property_.module_path().c_str());
@@ -490,7 +489,6 @@ PyProcessorPlugin::PyProcessorPlugin(
 
 PyProcessorPlugin::~PyProcessorPlugin()
 {
-    //Py_DECREF(gobal_dict_);
 }
 
 PyObject* PyProcessorPlugin::create_processor(
@@ -582,219 +580,13 @@ void PyProcessorPlugin::forward_delete_processor(
             environment);
 }
 
-
-
-//
-//    static void delete_native(
-//            ProcessorPlugin *plugin,
-//            RTI_RoutingServiceProcessor *native_processor,
-//            RTI_RoutingServiceEnvironment *environment)
-//    {
-//        ProcessorForwarder *processor_forwarder =
-//                static_cast<ProcessorForwarder*>(native_processor->processor_data);
-//        try {
-//            if (processor_forwarder->processor_ != NULL) {
-//                plugin->delete_processor(
-//                        processor_forwarder->route_,
-//                        processor_forwarder->processor_);
-//                processor_forwarder->processor_ = NULL;
-//            }
-//        } catch(const std::exception& ex) {
-//            RTI_RoutingServiceEnvironment_set_error(
-//                    environment,
-//                    "%s",
-//                    ex.what());
-//        } catch (...) {
-//            RTI_RoutingServiceEnvironment_set_error(
-//                    environment,
-//                    "unexpected exception");
-//        }
-//
-//        delete processor_forwarder;
-//    }
-//
-//
-//    static void forward_on_route_event(
-//        void *native_processor_data,
-//        RTI_RoutingServiceRouteEvent *native_route_event,
-//        RTI_RoutingServiceEnvironment *environment)
-//    {
-//
-//        ProcessorForwarder *forwarder =
-//                static_cast<ProcessorForwarder*>(native_processor_data);
-//
-//        try {
-//
-//            // build up wrapper objects based on the event
-//            switch (RTI_RoutingServiceRouteEvent_get_kind(native_route_event)) {
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_DATA_ON_INPUTS:
-//                forwarder->processor_->on_data_available(forwarder->route());
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_PERIODIC_ACTION:
-//
-//                forwarder->processor_->on_periodic_action(forwarder->route());
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_INPUT_ENABLED:
-//            {
-//                void *affected_entity =
-//                        RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
-//                void *index =
-//                        RTI_RoutingServiceRouteEvent_get_event_data(native_route_event);
-//                ScopedPort<Input, RTI_RoutingServiceStreamReaderExt> port(
-//                        forwarder->route_,
-//                        *(static_cast<int32_t*>(index)),
-//                        static_cast<RTI_RoutingServiceStreamReaderExt *>(affected_entity));
-//                forwarder->processor_->on_input_enabled(
-//                        forwarder->route(),
-//                        *port.get());
-//                RTI_RoutingServiceRoute_set_stream_port_user_data(
-//                        forwarder->route_.native_route_,
-//                        static_cast<RTI_RoutingServiceStreamReaderExt *>(affected_entity)->stream_reader_data,
-//                        port.get());
-//                port.clear();
-//
-//            }
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_INPUT_DISABLED:
-//            {
-//
-//                void *affected_entity =
-//                        RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
-//                RTI_RoutingServiceStreamReaderExt *native_input =
-//                        static_cast<RTI_RoutingServiceStreamReaderExt *>(affected_entity);
-//                Input *input = reinterpret_cast<Input*>(
-//                        RTI_RoutingServiceRoute_get_stream_port_user_data(
-//                                forwarder->route_.native_route_,
-//                                native_input->stream_reader_data));
-//                forwarder->processor_->on_input_disabled(
-//                        forwarder->route(),
-//                        *input);
-//                RTI_RoutingServiceRoute_set_stream_port_user_data(
-//                        forwarder->route_.native_route_,
-//                        native_input->stream_reader_data,
-//                        NULL);
-//                delete input;
-//            }
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_OUTPUT_ENABLED:
-//            {
-//                void *affected_entity =
-//                        RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
-//                void *index =
-//                        RTI_RoutingServiceRouteEvent_get_event_data(native_route_event);
-//                ScopedPort<Output, RTI_RoutingServiceStreamWriterExt> port(
-//                        forwarder->route_,
-//                        *(static_cast<int32_t*>(index)),
-//                        static_cast<RTI_RoutingServiceStreamWriterExt *>(affected_entity));
-//                forwarder->processor_->on_output_enabled(
-//                        forwarder->route(),
-//                        *port.get());
-//                RTI_RoutingServiceRoute_set_stream_port_user_data(
-//                        forwarder->route_.native_route_,
-//                        static_cast<RTI_RoutingServiceStreamWriterExt *>(affected_entity)->stream_writer_data,
-//                        port.get());
-//                port.clear();
-//
-//            }
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_OUTPUT_DISABLED:
-//            {
-//                void *affected_entity =
-//                        RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
-//                RTI_RoutingServiceStreamWriterExt *native_output =
-//                        static_cast<RTI_RoutingServiceStreamWriterExt *>(affected_entity);
-//                Output *output = reinterpret_cast<Output*>(
-//                        RTI_RoutingServiceRoute_get_stream_port_user_data(
-//                                forwarder->route_.native_route_,
-//                                native_output->stream_writer_data));
-//                forwarder->processor_->on_output_disabled(
-//                        forwarder->route(),
-//                        *output);
-//                RTI_RoutingServiceRoute_set_stream_port_user_data(
-//                        forwarder->route_.native_route_,
-//                        native_output->stream_writer_data,
-//                        NULL);
-//                delete output;
-//            }
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_STARTED:
-//
-//                forwarder->processor_->on_start(forwarder->route());
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_STOPPED:
-//
-//                forwarder->processor_->on_stop(forwarder->route());
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_RUNNING:
-//
-//                forwarder->processor_->on_run(forwarder->route());
-//                break;
-//
-//            case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_PAUSED:
-//
-//                forwarder->processor_->on_pause(forwarder->route());
-//                break;
-//
-//            default:
-//                break;
-//            };
-//
-//        } catch (const std::exception& ex) {
-//            RTI_RoutingServiceEnvironment_set_error(
-//                    environment,
-//                    "%s",
-//                    ex.what());
-//        } catch (...) {
-//            RTI_RoutingServiceEnvironment_set_error(
-//                    environment,
-//                    "%s",
-//                    "unexpected exception");
-//        }
-//    }
-//
-//    static void forward_update(
-//            void *native_processor_data,
-//            const struct RTI_RoutingServiceProperties *native_properties,
-//            RTI_RoutingServiceEnvironment *environment)
-//    {
-//
-//        ProcessorForwarder *processorForwarder =
-//                static_cast<ProcessorForwarder*> (native_processor_data);
-//
-//        rti::routing::detail::UpdatableEntityForwarder::update(
-//                processorForwarder->processor_,
-//                native_properties,
-//                environment);
-//    }
-//
-//    RTI_RoutingServiceProcessor* native()
-//    {
-//        return &native_;
-//    }
-//
-//
-//
-//
-
 struct RTI_RoutingServiceProcessorPlugin * PyProcessorPlugin_create_processor_plugin(
         const struct RTI_RoutingServiceProperties * native_properties,
         RTI_RoutingServiceEnvironment *environment)
 {
-    PropertySet properties;
-    rti::routing::PropertyAdapter::add_properties_from_native(
-            properties,
-            native_properties);
     try {
-        return PyProcessorPlugin::create_plugin(new PyProcessorPlugin(properties));
+        return PyProcessorPlugin::create_plugin(
+                new PyProcessorPlugin(native_properties));
     } catch (const std::exception& ex) {
         RTI_RoutingServiceEnvironment_set_error(
                 environment,

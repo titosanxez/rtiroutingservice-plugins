@@ -18,6 +18,7 @@ class PyRouteType
 public:
     typedef RTI_RoutingServiceRoute native_type;
     static PyTypeObject* type();
+    static const std::string& name();
 };
 
 class PyRoute : public PyNativeWrapper<PyRouteType>
@@ -36,7 +37,7 @@ public:
 
     static
     PyObject* input_at(PyRoute *self, PyObject *args);
-    
+
     static
     PyObject* output_at(PyRoute *self, PyObject *args);
 };

@@ -53,13 +53,15 @@ private:
 class PyProcessorPlugin {
 
 public:
+    static const std::string BASE_PROCESSOR_MODULE_NAME;
+    static const std::string BASE_PROCESSOR_TYPE_NAME;
     static const std::string MODULE_PROPERTY_NAME;
     static const std::string MODULE_PATH_PROPERTY_NAME;
     static const std::string MODULE_PATH_VALUE_DEFAULT;
     static const std::string CLASS_NAME_PROPERTY_NAME;
 
     PyProcessorPlugin(
-            const rti::routing::PropertySet& properties);
+            const struct RTI_RoutingServiceProperties *native_properties);
 
     ~PyProcessorPlugin();
 
@@ -88,10 +90,15 @@ public:
             RTI_RoutingServiceEnvironment *environment);
 
 private:
+    template <typename PYOBJECTTYPE> void add_type();
     void load_module();
+    PyObject* find_pyproc_type(const std::string& name);
+private:
     PyProcessorPluginProperty property_;
-    /* Copy of the main module dictionary */
-    PyObject *gobal_dict_;
+    /* Reference to the pyproc module */
+    PyObject *pyproc_module_;
+    /* Reference to the Processor base type*/
+    PyObject *pyproc_type_;
     /*
      * @brief Reference to the create_processor function
      */

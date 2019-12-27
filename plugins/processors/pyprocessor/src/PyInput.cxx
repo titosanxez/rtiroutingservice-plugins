@@ -96,6 +96,13 @@ PyTypeObject* PyInputType::type()
     return &PyInput_g_type;
 }
 
+const std::string& PyInputType::name()
+{
+    static std::string __name("Input");
+
+    return __name;
+}
+
 
 } } }
 

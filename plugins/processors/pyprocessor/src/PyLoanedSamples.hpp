@@ -26,6 +26,7 @@ class PyDataType {
 public:
     typedef dds::core::xtypes::DynamicData native_type;
     static PyTypeObject* type();
+    static const std::string& name();
 };
 
 class PyData : public PyNativeWrapper<PyDataType>
@@ -39,6 +40,7 @@ class PyInfoType {
 public:
     typedef dds::sub::SampleInfo native_type;
     static PyTypeObject* type();
+    static const std::string& name();
 };
 
 class PyInfo : public PyNativeWrapper<PyInfoType> {
@@ -52,6 +54,7 @@ class PySampleType : public PyObject {
 public:
     typedef dds::sub::SampleInfo native_type;
     static PyTypeObject* type();
+    static const std::string& name();
 };
 
 class PySample : public PyObject {
@@ -72,6 +75,12 @@ private:
     PyInfo *info_;
 };
 
+class PyLoanedSamplesType {
+public:
+    typedef dds::core::xtypes::DynamicData native_type;
+    static PyTypeObject* type();
+    static const std::string& name();
+};
 
 class PyLoanedSamples : public PyObject {
 public:
@@ -85,9 +94,7 @@ public:
     void operator delete(void* object);
 
     Native& get();
-
-    static PyTypeObject* type();
-
+    
     /* python methods */
     static PyObject* get_item(
             PyLoanedSamples *self,
