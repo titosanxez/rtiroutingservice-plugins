@@ -12,8 +12,7 @@ namespace rti { namespace routing { namespace py {
  */
 PyObject* PyInput::name(PyInput *self, PyObject *Py_UNUSED(ignored))
 {
-    return PyUnicode_FromFormat(
-            "%s",
+    return PyUnicode_FromString(
             RTI_RoutingServiceRoute_get_input_name(self->native_route(), self->get()));
 }
 

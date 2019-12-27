@@ -6,15 +6,18 @@ class Processor(ABC):
     def __init__(self, route, properties):
         NotImplemented
 
-    @abstractmethod
     def on_input_enabled(self, route, input):
         NotImplemented
 
-    @abstractmethod
     def on_input_disabled(self, route, input):
         NotImplemented
 
-    @abstractmethod
+    def on_output_enabled(self, route, output):
+        NotImplemented
+
+    def on_output_disabled(self, route, output):
+        NotImplemented
+
     def on_data_available(self, route):
         NotImplemented
 

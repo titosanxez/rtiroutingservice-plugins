@@ -64,8 +64,8 @@ public:
     void operator delete(void* object);
 
     /* python methods */
-    static PyObject* data(PySample *self, PyObject *Py_UNUSED(ignored));
-    static PyObject* info(PySample *self, PyObject *Py_UNUSED(ignored));
+    static PyObject* data(PySample *self, void* closure);
+    static PyObject* info(PySample *self, void* closure);
 
 private:
     PyData *data_;
@@ -92,6 +92,8 @@ public:
     static PyObject* get_item(
             PyLoanedSamples *self,
             Py_ssize_t index);
+
+    static PyObject* length(PyLoanedSamples *self, void* closure);
 
 private:
     Native loaned_samples_;

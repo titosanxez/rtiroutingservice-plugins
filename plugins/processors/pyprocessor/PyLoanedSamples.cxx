@@ -78,16 +78,13 @@ PyTypeObject *PyDataType::type()
  * --- PySample Python methods ------------------------------------------------
  */
 
-PyObject* PySample::data(PySample* self, PyObject* _unused_ignored)
+PyObject* PySample::data(PySample* self, void*)
 {
-
-    std::cout << *self->data_->get() << std::endl;
-
     Py_INCREF(self->data_);
     return self->data_;
 }
 
-PyObject* PySample::info(PySample* self, PyObject* _unused_ignored)
+PyObject* PySample::info(PySample* self, void*)
 {
     if (self->info_ != NULL) {
         Py_INCREF(self->info_);
@@ -120,21 +117,25 @@ void PySample::operator delete(void* object)
     Py_TYPE(object)->tp_free((PyObject *) object);
 }
 
-
+static PyGetSetDef PySample_g_getsetters[] = {
+    {
+        (char *) "data",
+        (getter) PySample::data,
+        (setter) NULL,
+        (char *) "data portion of the sample name",
+        NULL
+    },
+    {
+        (char *) "info",
+        (getter) PySample::info,
+        (setter) NULL,
+        (char *) "info portion of the sample name",
+        NULL
+    },
+    {NULL}  /* Sentinel */
+};
 
 static PyMethodDef PySample_g_methods[] = {
-    {
-        "data",
-        (PyCFunction) PySample::data,
-        METH_VARARGS,
-        "returns the data portion of the sample"
-    },
-    {
-        "data",
-        (PyCFunction) PySample::info,
-        METH_VARARGS,
-        "returns the info portion of the sample"
-    },
     {NULL}  /* Sentinel */
 };
 
@@ -146,7 +147,8 @@ static PyTypeObject PySample_g_type = {
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = NULL,
-    .tp_methods = PySample_g_methods
+    .tp_methods = PySample_g_methods,
+    .tp_getset = PySample_g_getsetters
 };
 
 PyTypeObject* PySampleType::type()
@@ -173,11 +175,27 @@ PyObject* PyLoanedSamples::get_item(
     }
 }
 
+PyObject* PyLoanedSamples::length(PyLoanedSamples* self, void* closure)
+{
+    return PyLong_FromLong(self->get().length());
+}
+
 static
 void PyLoanedSamples_dealloc(PyLoanedSamples *self)
 {
     delete self;
 }
+
+static PyGetSetDef PyLoanedSamples_g_getsetters[] = {
+    {
+        (char *) "length",
+        (getter) PyLoanedSamples::length,
+        (setter) NULL,
+        (char *) "total number of read samples",
+        NULL
+    },
+    {NULL}  /* Sentinel */
+};
 
 static PyMethodDef PyLoanedSamples_g_methods[] = {
 //    {
@@ -204,6 +222,7 @@ static PyTypeObject PyLoanedSamples_g_type = {
     .tp_dealloc = (destructor) PyLoanedSamples_dealloc,
     .tp_methods = PyLoanedSamples_g_methods,
     .tp_as_sequence = &PyLaonedSamples_g_sequence,
+    .tp_getset = PyLoanedSamples_g_getsetters,
 };
 
 /*

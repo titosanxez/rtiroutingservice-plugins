@@ -34,6 +34,7 @@ find_library(
 add_library(pyproc
     "${CMAKE_CURRENT_SOURCE_DIR}/PyLoanedSamples.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/PyInput.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/PyOutput.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/PyRoute.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/PyProcessor.cxx")
 

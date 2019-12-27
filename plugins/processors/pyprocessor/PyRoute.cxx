@@ -23,17 +23,13 @@ namespace rti { namespace routing { namespace py {
 /*
  * --- PyRoute Python methods -------------------------------------------------
  */
-static
-PyObject* PyRoute_name(PyRoute *self, PyObject *Py_UNUSED(ignored))
+PyObject* PyRoute::name(PyRoute *self, PyObject *Py_UNUSED(ignored))
 {
     return PyUnicode_FromFormat("%s", "I'm a Python Route!");
 }
 
-static
-PyObject* PyRoute_input(PyRoute *self, PyObject *args)
+PyObject* PyRoute::input_at(PyRoute *self, PyObject *args)
 {
-    using dds::core::xtypes::DynamicData;
-
     int32_t index = 0;
     if (!PyArg_ParseTuple(args, "i", &index)) {
         return NULL;
@@ -43,7 +39,7 @@ PyObject* PyRoute_input(PyRoute *self, PyObject *args)
     try {
         py_input = self->input(index);
     } catch (const std::exception &ex) {
-        PyErr_Format(PyExc_RuntimeError, "%s", ex.what());
+        PyErr_Format(PyExc_IndexError, "%s", ex.what());
         return NULL;
     }
 
@@ -51,18 +47,44 @@ PyObject* PyRoute_input(PyRoute *self, PyObject *args)
     return py_input;
 }
 
+PyObject* PyRoute::output_at(PyRoute* self, PyObject* args)
+{
+    int32_t index = 0;
+    if (!PyArg_ParseTuple(args, "i", &index)) {
+        return NULL;
+    }
+
+    PyOutput *py_output = NULL;
+    try {
+        py_output = self->output(index);
+    } catch (const std::exception &ex) {
+        PyErr_Format(PyExc_IndexError, "%s", ex.what());
+        return NULL;
+    }
+
+    Py_INCREF(py_output);
+    return py_output;
+}
+
+
 static PyMethodDef PyRoute_g_methods[] = {
     {
         "name",
-        (PyCFunction) PyRoute_name,
+        (PyCFunction) PyRoute::name,
         METH_NOARGS,
         "Return the name, combining the first and last name"
     },
     {
         "input",
-        (PyCFunction) PyRoute_input,
+        (PyCFunction) PyRoute::input_at,
         METH_VARARGS,
         "returns the input at the specified index"
+    },
+    {
+        "output",
+        (PyCFunction) PyRoute::output_at,
+        METH_VARARGS,
+        "returns the output at the specified index"
     },
     {NULL}  /* Sentinel */
 };
@@ -105,6 +127,24 @@ PyInput* PyRoute::input(RTI_RoutingServiceStreamReaderExt *native_input)
 
     return static_cast<PyInput*>(py_input);
 }
+
+
+PyOutput* PyRoute::output(int32_t index)
+{
+     return output(RTI_RoutingServiceRoute_get_output_at(native_, index));
+}
+
+
+PyOutput * PyRoute::output(RTI_RoutingServiceStreamWriterExt* native_output)
+{
+    void *py_output = RTI_RoutingServiceRoute_get_stream_port_user_data(
+            native_,
+            native_output->stream_writer_data);
+    assert(py_output != NULL);
+
+    return static_cast<PyOutput*>(py_output);
+}
+
 
 PyTypeObject* PyRouteType::type()
 {

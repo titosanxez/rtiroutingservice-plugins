@@ -25,6 +25,7 @@
 #include "PyProcessor.hpp"
 #include "PyInput.hpp"
 #include "PyLoanedSamples.hpp"
+#include "PyOutput.hpp"
 
 using namespace rti::routing;
 using namespace rti::routing::processor;
@@ -176,7 +177,6 @@ void PyProcessor::forward_on_route_event(
         }
             break;
 
-
         case RTI_ROUTING_SERVICE_ROUTE_EVENT_INPUT_DISABLED:
         {
 
@@ -203,6 +203,62 @@ void PyProcessor::forward_on_route_event(
                     NULL);
         }
             break;
+
+
+        case RTI_ROUTING_SERVICE_ROUTE_EVENT_OUTPUT_ENABLED:
+        {
+            void *affected_entity =
+                    RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
+            PyObjectGuard py_output = new PyOutput(
+                    static_cast<RTI_RoutingServiceStreamWriterExt *>(affected_entity),
+                    forwarder->py_route_->get(),
+                    environment);
+            RTI_RoutingServiceRoute_set_stream_port_user_data(
+                    forwarder->py_route_->get(),
+                    static_cast<RTI_RoutingServiceStreamWriterExt *> (affected_entity)->stream_writer_data,
+                    py_output.get());
+            if (PyObject_CallMethod(
+                    forwarder->py_processor_,
+                    "on_output_enabled",
+                    "OO",
+                    forwarder->py_route_,
+                    py_output.get()) == NULL) {
+                PyErr_Print();
+                throw dds::core::Error("on_output_enabled: error calling Python processor");
+            }
+
+            py_output.release();
+        }
+            break;
+
+            case RTI_ROUTING_SERVICE_ROUTE_EVENT_OUTPUT_DISABLED:
+        {
+
+            void *affected_entity =
+                    RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
+            RTI_RoutingServiceStreamWriterExt *native_output =
+                    static_cast<RTI_RoutingServiceStreamWriterExt *> (affected_entity);
+            PyObjectGuard pyt_output =
+                    forwarder->py_route_->output(native_output);
+            if (PyObject_CallMethod(
+                    forwarder->py_processor_,
+                    "on_output_disabled",
+                    "OO",
+                    forwarder->py_route_,
+                    pyt_output.get()) == NULL) {
+                PyErr_Print();
+                pyt_output.release();
+                throw dds::core::Error("on_output_disabled: error calling Python processor");
+            }
+
+            RTI_RoutingServiceRoute_set_stream_port_user_data(
+                    forwarder->py_route_->get(),
+                    native_output->stream_writer_data,
+                    NULL);
+        }
+            break;
+
+
         }
 
     } catch (const std::exception& ex) {
@@ -371,6 +427,7 @@ void PyProcessorPlugin::load_module()
     // Add processor types to module
     add_type("Route", PyRouteType::type());
     add_type("Input", PyInputType::type());
+    add_type("Output", PyOutputType::type());
     add_type("LoanedSamples", PyLoanedSamples::type());
     add_type("Sample", PySampleType::type());
     add_type("SampleData", PyDataType::type());
