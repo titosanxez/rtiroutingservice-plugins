@@ -6,3 +6,7 @@
 /config.mk
 *.log
 /log
+/plugins/processors/pyprocessor/build/
+/plugins/processors/pyprocessor/dist/
+__pycache__
+nbproject
