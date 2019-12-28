@@ -18,8 +18,8 @@
 #include "Python.h"
 #include <dds/core/xtypes/DynamicData.hpp>
 #include <rti/routing/processor/Processor.hpp>
-#include "NativeUtils.h"
-#include "PyLoanedSamples.hpp"
+#include "NativeUtils.hpp"
+#include "PySamples.hpp"
 
 namespace rti { namespace routing { namespace py {
 
@@ -35,7 +35,8 @@ class PyInput : public PyNativeWrapper<PyInputType>
 {
 public:
     typedef RTI_RoutingServiceStreamReaderExt native_type;
-    typedef typename PyDataType::native_type native_data_type;
+    typedef dds::core::xtypes::DynamicData native_data_type;
+    typedef rti::routing::processor::LoanedSamples<native_data_type> native_loaned_samples;
 
     PyInput(
             RTI_RoutingServiceStreamReaderExt *native,
@@ -45,6 +46,9 @@ public:
 
     static PyObject* name(PyInput *self, PyObject *Py_UNUSED(ignored));
     static PyObject* take(PyInput *self, PyObject *Py_UNUSED(ignored));
+
+private:
+    static PyObject* sample_list(native_loaned_samples& loaned_samples);
 
 private:
     RTI_RoutingServiceRoute *native_route_;

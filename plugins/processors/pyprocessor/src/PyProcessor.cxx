@@ -21,10 +21,10 @@
 #include <dds/core/xtypes/DynamicData.hpp>
 #include <dds/core/xtypes/StructType.hpp>
 
-#include "NativeUtils.h"
+#include "NativeUtils.hpp"
 #include "PyProcessor.hpp"
 #include "PyInput.hpp"
-#include "PyLoanedSamples.hpp"
+#include "PySamples.hpp"
 #include "PyOutput.hpp"
 
 using namespace rti::routing;
@@ -39,6 +39,19 @@ namespace rti { namespace routing { namespace py {
 /*
  * --- PyProcessor -------------------------------------------------
  */
+const char *PyProcessor_METHOD_NAMES[] = {
+    "", /* NONE */
+    "on_input_enabled", /*  INPUT_ENABLED */
+    "on_input_disabled", /* INPUT_DISABLED */
+    "on_output_enabled", /* OUTPUT_ENABLED */
+    "on_output_disabled", /* OUTPUT_DISABLED */
+    "on_start", /* ROUTE_STARTED */
+    "on_stop", /* ROUTE_STOPPED */
+    "on_run", /* ROUTE_RUNNING */
+    "on_pause", /* ROUTE_PAUSED */
+    "on_data_available", /* ROUTE_PAUSED */
+    "on_periodic_action" /* ROUTE_PAUSED */
+};
 
 PyProcessor::PyProcessor(
         PyObject *py_processor,
@@ -129,14 +142,16 @@ void PyProcessor::forward_on_route_event(
             static_cast<PyProcessor*> (native_processor_data);
 
     try {
+        RTI_RoutingServiceRouteEventKind event_kind =
+                RTI_RoutingServiceRouteEvent_get_kind(native_route_event);
         // build up wrapper objects based on the event
-        switch (RTI_RoutingServiceRouteEvent_get_kind(native_route_event)) {
+        switch (event_kind) {
 
         case RTI_ROUTING_SERVICE_ROUTE_EVENT_DATA_ON_INPUTS:
         {
             if (PyObject_CallMethod(
                     forwarder->py_processor_,
-                    "on_data_available",
+                    PyProcessor_METHOD_NAMES[event_kind],
                     "O",
                     forwarder->py_route_) == NULL) {
                 PyErr_Print();
@@ -150,7 +165,7 @@ void PyProcessor::forward_on_route_event(
         {
             if (PyObject_CallMethod(
                     forwarder->py_processor_,
-                    "on_periodic_event",
+                    PyProcessor_METHOD_NAMES[event_kind],
                     "O",
                     forwarder->py_route_) == NULL) {
                 PyErr_Print();
@@ -173,7 +188,7 @@ void PyProcessor::forward_on_route_event(
                     py_input.get());
             if (PyObject_CallMethod(
                     forwarder->py_processor_,
-                    "on_input_enabled",
+                    PyProcessor_METHOD_NAMES[event_kind],
                     "OO",
                     forwarder->py_route_,
                     py_input.get()) == NULL) {
@@ -196,7 +211,7 @@ void PyProcessor::forward_on_route_event(
                     forwarder->py_route_->input(native_input);
             if (PyObject_CallMethod(
                     forwarder->py_processor_,
-                    "on_input_disabled",
+                    PyProcessor_METHOD_NAMES[event_kind],
                     "OO",
                     forwarder->py_route_,
                     py_input.get()) == NULL) {
@@ -227,7 +242,7 @@ void PyProcessor::forward_on_route_event(
                     py_output.get());
             if (PyObject_CallMethod(
                     forwarder->py_processor_,
-                    "on_output_enabled",
+                    PyProcessor_METHOD_NAMES[event_kind],
                     "OO",
                     forwarder->py_route_,
                     py_output.get()) == NULL) {
@@ -250,7 +265,7 @@ void PyProcessor::forward_on_route_event(
                     forwarder->py_route_->output(native_output);
             if (PyObject_CallMethod(
                     forwarder->py_processor_,
-                    "on_output_disabled",
+                    PyProcessor_METHOD_NAMES[event_kind],
                     "OO",
                     forwarder->py_route_,
                     pyt_output.get()) == NULL) {
@@ -265,6 +280,23 @@ void PyProcessor::forward_on_route_event(
                     NULL);
         }
             break;
+
+        case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_STARTED:
+        case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_STOPPED:
+        case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_RUNNING:
+        case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_PAUSED:
+        {
+            if (PyObject_CallMethod(
+                    forwarder->py_processor_,
+                    PyProcessor_METHOD_NAMES[event_kind],
+                    "O",
+                    forwarder->py_route_) == NULL) {
+                PyErr_Print();
+                throw dds::core::Error("on_output_disabled: error calling Python processor");
+            }
+        }
+            break;
+
 
         default:
             // nothing to do
@@ -428,10 +460,7 @@ void PyProcessorPlugin::load_module()
     add_type<PyRouteType>();
     add_type<PyInputType>();
     add_type<PyOutputType>();
-    add_type<PyLoanedSamplesType>();
     add_type<PySampleType>();
-    add_type<PyDataType>();
-    add_type<PyInfoType>();
 
 
     //PyObject_Print(plugin_class, stdout, 0);

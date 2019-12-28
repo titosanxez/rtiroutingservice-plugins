@@ -28,8 +28,9 @@ class MyProcessor(proc.Processor):
         try:
             print('on_data_available: ' + self.my_data)
             samples = route.input(0).take();
+            print(len(samples))
             print(samples[0].data)
-#            print(samples.length)
+            print(samples[0].info)
             route.output(0).write(samples[0].data);
 #            samples[0].data = 0;
         except AttributeError as atterr:

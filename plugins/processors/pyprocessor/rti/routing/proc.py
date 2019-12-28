@@ -18,6 +18,18 @@ class Processor(ABC):
     def on_output_disabled(self, route, output):
         NotImplemented
 
+    def on_start(self, route):
+        NotImplemented
+
+    def on_stop(self, route):
+        NotImplemented
+
+    def on_run(self, route):
+        NotImplemented
+
+    def on_pause(self, route):
+        NotImplemented
+
     def on_data_available(self, route):
         NotImplemented
 

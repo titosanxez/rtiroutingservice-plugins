@@ -17,8 +17,8 @@
 #include "Python.h"
 #include <dds/core/xtypes/DynamicData.hpp>
 #include <rti/routing/processor/Processor.hpp>
-#include "NativeUtils.h"
-#include "PyLoanedSamples.hpp"
+#include "NativeUtils.hpp"
+#include "PySamples.hpp"
 
 namespace rti { namespace routing { namespace py {
 
@@ -34,7 +34,7 @@ class PyOutput : public PyNativeWrapper<PyOutputType>
 {
 public:
     typedef RTI_RoutingServiceStreamWriterExt native_type;
-    typedef typename PyDataType::native_type native_data_type;
+    typedef dds::core::xtypes::DynamicData native_data_type;
 
     PyOutput(
             RTI_RoutingServiceStreamWriterExt *native,

@@ -26,6 +26,10 @@ public:
     {
     }
 
+    PyObjectGuard() : object_(NULL)
+    {
+    }
+
     ~PyObjectGuard()
     {
         decref();
@@ -56,34 +60,6 @@ private:
     PyObject *object_;
 };
 
-inline
-PyObject* from_native(
-        const struct RTI_RoutingServiceProperties *properties)
-{
-    PyObjectGuard py_dict = PyDict_New();
-    if (py_dict.get() == NULL) {
-        PyErr_Print();
-        throw dds::core::Error("error creating Python dictionary");
-    }
-
-    for (int i = 0; i < properties->count; i++) {
-        PyObjectGuard value = Py_BuildValue("s", properties->properties[i].value);
-        if (value.get() == NULL) {
-            PyErr_Print();
-            throw dds::core::Error("error creating string value");
-        }
-
-        if (PyDict_SetItemString(
-                py_dict.get(),
-                properties->properties[i].name,
-                value.get()) == -1) {
-            PyErr_Print();
-            throw dds::core::Error("error inserting property element into dictionary");
-        }
-    }
-
-    return py_dict.release();
-}
 
 template <typename T>
 struct  PyNativeWrapper : public PyObject
@@ -130,6 +106,62 @@ public:
 protected:
 
     typename T::native_type *native_;
+};
+
+
+/*
+ * --- conversion utilities ---------------------------------------------------
+ */
+
+template <typename T, typename U>
+PyObject* from_native_array(
+        const T* array,
+        int32_t size,
+        std::function<PyObject*(U)> to_python_object)
+{
+    PyObjectGuard py_list = PyList_New(size);
+    if (py_list.get() == NULL) {
+        PyErr_Print();
+        throw dds::core::Error("from_native: error creating Python list");
+    }
+    for (int i = 0; i < size; i++) {
+        if (PyList_SetItem(
+                py_list.get(),
+                i,
+                to_python_object((U) array[i])) != 0) {
+            PyErr_Print();
+            throw dds::core::Error("from_native: error inserting element["
+                    + std::to_string(i)
+                    + "]");
+        }
+    }
+
+    return py_list.release();
+}
+
+PyObject* from_native(
+        const RTI_RoutingServiceProperties *properties);
+
+PyObject* from_native(
+        const DDS_InstanceHandle_t& handle);
+
+PyObject* from_native(
+        const DDS_SequenceNumber_t& sn);
+
+PyObject* from_native(
+        const DDS_SampleIdentity_t& identity);
+
+
+
+class SampleInfoConverter {
+
+public:
+    static PyObject * to_dictionary(
+            const dds::sub::SampleInfo& info);
+
+    static void to_sample_info(
+            dds::sub::SampleInfo& info,
+            PyObject *py_dict);
 };
 
 } } }

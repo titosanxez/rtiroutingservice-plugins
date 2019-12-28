@@ -24,7 +24,7 @@
 #include <dds/core/xtypes/StructType.hpp>
 #include <dds/core/Optional.hpp>
 #include <rti/routing/processor/ProcessorPlugin.hpp>
-#include "NativeUtils.h"
+#include "NativeUtils.hpp"
 #include "PyRoute.hpp"
 
 namespace rti { namespace routing { namespace py {

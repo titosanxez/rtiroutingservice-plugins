@@ -32,8 +32,9 @@ find_library(
 
 # Define the library that will provide the  Processor plugin
 add_library(pyproc
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/NativeUtils.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyDynamicData.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyLoanedSamples.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PySamples.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyInput.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyOutput.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyRoute.cxx"

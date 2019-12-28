@@ -6,7 +6,7 @@
 #include "Python.h"
 
 #include <rti/routing/processor/Processor.hpp>
-#include "NativeUtils.h"
+#include "NativeUtils.hpp"
 #include "PyInput.hpp"
 #include "PyOutput.hpp"
 

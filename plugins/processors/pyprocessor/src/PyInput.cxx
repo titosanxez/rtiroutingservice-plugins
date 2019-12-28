@@ -21,7 +21,7 @@ PyObject* PyInput::take(PyInput *self, PyObject *Py_UNUSED(ignored))
     using dds::core::xtypes::DynamicData;
     using rti::routing::processor::LoanedSamples;
 
-    PyLoanedSamples *py_samples = NULL;
+    PyObject *py_samples = NULL;
     try {
         rti::routing::processor::detail::NativeSamples native_samples;
         self->get()->take(
@@ -35,7 +35,7 @@ PyObject* PyInput::take(PyInput *self, PyObject *Py_UNUSED(ignored))
                 self->get(),
                 native_samples,
                 self->native_env_);
-        py_samples = new PyLoanedSamples(native_loaned_samples);
+        py_samples = PyInput::sample_list(native_loaned_samples);
     } catch (const std::exception &ex) {
         PyErr_Format(PyExc_RuntimeError, "%s", ex.what());
         return NULL;
@@ -82,13 +82,35 @@ PyInput::PyInput(
         native_route_(native_route),
         native_env_(environment)
 {
-    
+
 }
 
 
 RTI_RoutingServiceRoute* PyInput::native_route()
 {
     return native_route_;
+}
+
+PyObject* PyInput::sample_list(native_loaned_samples& loaned_samples)
+{
+    PyObject* py_list = PyList_New(loaned_samples.length());
+    if (py_list == NULL) {
+        PyErr_Print();
+        throw dds::core::Error("PyInput::sample_list: error creating sample list");
+    }
+
+    // Convert samples into dictionaries
+    for (int32_t i = 0; i < loaned_samples.length(); ++i) {
+        if (PyList_SetItem(
+                py_list,
+                i,
+                new PySample(loaned_samples[i])) != 0) {
+            PyErr_Print();
+            throw dds::core::Error("PyInput::sample_list: error creating sample item");
+        }
+    }
+
+    return py_list;
 }
 
 
