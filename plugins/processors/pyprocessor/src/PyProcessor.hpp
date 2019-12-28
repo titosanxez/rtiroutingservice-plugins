@@ -141,11 +141,6 @@ private:
     PyObject *py_processor_;
     // Reference to the Python Route
     PyRoute *py_route_;
-
-    // Optional member for deferred initialization: this object can be created
-    // only when the output is enabled.
-    // You can use std::optional if supported in your platform
-    dds::core::optional<dds::core::xtypes::DynamicData> output_data_;
 };
 
 

@@ -335,21 +335,21 @@ const std::string& PyProcessorPluginProperty::module_path()
 }
 
 const std::string PyProcessorPlugin::BASE_PROCESSOR_MODULE_NAME =
-        "rti.routing.pyproc";
+        "rti.routing.proc";
 
 const std::string PyProcessorPlugin::BASE_PROCESSOR_TYPE_NAME =
         "Processor";
 
 const std::string PyProcessorPlugin::MODULE_PROPERTY_NAME =
-        "rti.routing.pyproc.module.name";
+        "rti.routing.proc.py.module.name";
 
 const std::string PyProcessorPlugin::MODULE_PATH_PROPERTY_NAME =
-        "rti.routing.pyproc.module.path";
+        "rti.routing.proc.py.module.path";
 
 const std::string PyProcessorPlugin::MODULE_PATH_VALUE_DEFAULT = ".";
 
 const std::string PyProcessorPlugin::CLASS_NAME_PROPERTY_NAME =
-        "rti.routing.pyproc.class_name";
+        "rti.routing.proc.py.class_name";
 
 
 template<typename PYOBJECTTYPE>
@@ -426,6 +426,7 @@ void PyProcessorPlugin::load_module()
 
     // Add processor types to module
     add_type<PyRouteType>();
+    add_type<PyInputType>();
     add_type<PyOutputType>();
     add_type<PyLoanedSamplesType>();
     add_type<PySampleType>();

@@ -48,6 +48,8 @@ public:
 private:
     RTI_RoutingServiceRoute *native_route_;
     RTI_RoutingServiceEnvironment *native_env_;
+
+    dds::core::xtypes::DynamicData output_data_;
 };
 
 } } }

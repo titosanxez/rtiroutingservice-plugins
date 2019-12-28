@@ -60,31 +60,10 @@ const std::string& PyInfoType::name()
  */
 
 PyData::PyData(const PyDataType::native_type* native_data)
-        :PyNativeWrapper(const_cast<PyDataType::native_type*>(native_data)),
-        dict_(DynamicDataConverter::to_dictionary(*native_data))
+        :PyNativeWrapper(const_cast<PyDataType::native_type*>(native_data))
 {
 
-//    PyObject *str = PyObject_CallMethod(format.result(), "__str__", NULL);
-//    printf("%s\n", PyUnicode_AsUTF8(str));
 }
-
-PyObject* PyData::dict(PyData* self, void* closure)
-{
-    Py_INCREF(self->dict_);
-    return self->dict_;
-}
-
-
-static PyGetSetDef PyData_g_getsetters[] = {
-    {
-        (char *) "dict",
-        (getter) PyData::dict,
-        (setter) NULL,
-        (char *) "data portion of the sample name",
-        NULL
-    },
-    {NULL}  /* Sentinel */
-};
 
 
 static PyTypeObject PyData_g_type = {
@@ -94,8 +73,7 @@ static PyTypeObject PyData_g_type = {
     .tp_basicsize = sizeof(PyData),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = NULL,
-    .tp_getset = PyData_g_getsetters
+    .tp_new = NULL
 };
 
 PyTypeObject *PyDataType::type()
@@ -136,7 +114,7 @@ PyObject* PySample::info(PySample* self, void*)
 
 PySample::PySample(
         const native_sample& loaned_sample)
-        :data_(DynamicDataConverter::to_dictionary(loaned_sample.data())),
+        :data_(new PyData(&(loaned_sample.data()))),
         info_(new PyInfo(&(loaned_sample.info())))
 {
 }
@@ -211,8 +189,7 @@ PyObject* PyLoanedSamples::get_item(
     using rti::routing::processor::LoanedSample;
 
     try {
-        Py_INCREF(self->samples_[index]);
-        return self->samples_[index];
+        return new PySample(self->get()[index]);
     } catch (const std::exception &ex) {
         PyErr_Format(PyExc_RuntimeError, "%s", ex.what());
         return NULL;
@@ -221,7 +198,7 @@ PyObject* PyLoanedSamples::get_item(
 
 PyObject* PyLoanedSamples::length(PyLoanedSamples* self, void* closure)
 {
-    return PyLong_FromLong(self->samples_.size());
+    return PyLong_FromLong(self->get().length());
 }
 
 static
@@ -287,22 +264,15 @@ void PyLoanedSamples::operator delete(void* object)
 
 
 PyLoanedSamples::PyLoanedSamples(Native& loaned_samples)
+    : loaned_samples_(std::move(loaned_samples))
 {
     PyObject_Init(this, PyLoanedSamplesType::type());
-
-    // Convert samples into dictionaries
-    for (auto& native_sample : loaned_samples)  {
-        samples_.push_back(new PySample(native_sample));
-    }
 }
 
-PyLoanedSamples::~PyLoanedSamples()
+PyLoanedSamples::Native& PyLoanedSamples::get()
 {
-    for (auto *sample : samples_)  {
-        Py_DECREF(sample);
-    }
+    return loaned_samples_;
 }
-
 
 PyTypeObject* PyLoanedSamplesType::type()
 {

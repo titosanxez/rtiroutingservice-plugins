@@ -18,22 +18,30 @@ PyObject* PyOutput::name(PyOutput *self, PyObject *Py_UNUSED(ignored))
 
 PyObject* PyOutput::write(PyOutput *self, PyObject *args)
 {
-    PyData *py_data = NULL;
+    PyObject *py_dict = NULL;
     if (!PyArg_ParseTuple(
             args,
             "O",
-            &py_data)) {
+            &py_dict)) {
         return NULL;
     }
 
-    const RTI_RoutingServiceSample out_samples[1] = {
-        const_cast<void *> (reinterpret_cast<const void *> (py_data->get()))
-    };
-    const RTI_RoutingServiceSampleInfo out_infos[1] = {
-        const_cast<void *> (reinterpret_cast<const void *> (NULL))
-    };
+    if (!PyDict_Check(py_dict)) {
+        PyErr_Format(PyExc_RuntimeError, "%s", "data is not a dictionary");
+        Py_RETURN_NONE;
+    }
 
     try {
+        DynamicDataConverter::to_dynamic_data(
+                self->output_data_,
+                py_dict);
+        const RTI_RoutingServiceSample out_samples[1] = {
+            const_cast<void *> (reinterpret_cast<const void *>(&self->output_data_))
+        };
+        const RTI_RoutingServiceSampleInfo out_infos[1] = {
+            const_cast<void *> (reinterpret_cast<const void *> (NULL))
+        };
+
         self->get()->write(
                 self->get()->stream_writer_data,
                 out_samples,
@@ -77,6 +85,20 @@ static PyTypeObject PyOutput_g_type = {
     .tp_methods = PyOutput_g_methods
 };
 
+const dds::core::xtypes::DynamicType& dynamic_type(
+        RTI_RoutingServiceStreamWriterExt* native_output,
+        RTI_RoutingServiceRoute *native_route)
+{
+    const RTI_RoutingServiceStreamInfo *stream_info =
+            RTI_RoutingServiceRoute_get_output_stream_info(
+                    native_route,
+                    native_output);
+    dds::core::xtypes::DynamicType *type_code =
+            static_cast<dds::core::xtypes::DynamicType *> (
+            stream_info->type_info.type_representation);
+    return *type_code;
+}
+
 
 PyOutput::PyOutput(
         RTI_RoutingServiceStreamWriterExt* native,
@@ -84,7 +106,8 @@ PyOutput::PyOutput(
         RTI_RoutingServiceEnvironment *environment)
         : PyNativeWrapper(native),
         native_route_(native_route),
-        native_env_(environment)
+        native_env_(environment),
+        output_data_(dynamic_type(native, native_route))
 {
 }
 

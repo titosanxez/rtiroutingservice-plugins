@@ -3,9 +3,9 @@ import sys
 
 sys.path.insert(0, os.path.abspath('..'))
 
-from rti.routing import pyproc
+from rti.routing import proc
 
-class MyProcessor(pyproc.Processor):
+class MyProcessor(proc.Processor):
     def __init__(self, route, properties):
         self.my_data = 'MyProcessor'
         print('MyProcessor constructor called')
@@ -29,14 +29,14 @@ class MyProcessor(pyproc.Processor):
             print('on_data_available: ' + self.my_data)
             samples = route.input(0).take();
             print(samples[0].data)
-            print(samples.length)
+#            print(samples.length)
             route.output(0).write(samples[0].data);
-            samples[0].data = 0;
+#            samples[0].data = 0;
         except AttributeError as atterr:
             print(atterr)
 
 
-class MyProcessorPlugin(pyproc.ProcessorPlugin):
+class MyProcessorPlugin(proc.ProcessorPlugin):
     def create_processor(route, properties):
         print('MyProcessorPlugin.create_processor')
         print(properties)
