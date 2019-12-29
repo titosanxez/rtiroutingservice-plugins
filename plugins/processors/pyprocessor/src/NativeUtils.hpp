@@ -113,6 +113,23 @@ protected:
 /*
  * --- conversion utilities ---------------------------------------------------
  */
+#define RTI_PY_ADD_DICT_ITEM_MEMBER(DICT, OBJECT, MEMBER, CONV) \
+    if (PyDict_SetItemString(\
+            (DICT), \
+            #MEMBER, \
+            (CONV)((OBJECT).MEMBER)) == -1) {\
+        PyErr_Print();\
+        throw dds::core::Error("from_native: error setting member="#MEMBER);\
+    }
+
+#define RTI_PY_ADD_DICT_ITEM_VALUE(DICT, MEMBER, CONV) \
+    if (PyDict_SetItemString(\
+            (DICT), \
+            #MEMBER, \
+            (CONV)(MEMBER)) == -1) {\
+        PyErr_Print();\
+        throw dds::core::Error("from_native: error setting member="#MEMBER);\
+    }
 
 template <typename T, typename U>
 PyObject* from_native_array(
@@ -155,6 +172,9 @@ PyObject* from_native(
 PyObject* from_native(
         const RTICdrOctet *byte_array,
         int32_t size);
+
+PyObject* from_native(
+        const RTI_RoutingServiceStreamInfo& info);
 
 DDS_InstanceHandle_t& to_native(
         DDS_InstanceHandle_t& dest,

@@ -19,6 +19,7 @@
             <datareader_qos>
                 <history>
                     <kind>KEEP_LAST_HISTORY_QOS</kind>
+                    <depth>100</depth>
                 </history>
             </datareader_qos>
         </qos_profile>

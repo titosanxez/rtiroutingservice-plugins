@@ -188,6 +188,27 @@ PyObject* from_native(const DDS_Time_t& time)
     return py_dict.release();
 }
 
+PyObject* from_native(const RTI_RoutingServiceStreamInfo& info)
+{
+    PyObjectGuard py_dict = PyDict_New();
+    if (py_dict.get() == NULL) {
+        PyErr_Print();
+        throw dds::core::Error("from_native: error creating Python dictionary");
+    }
+    RTI_PY_ADD_DICT_ITEM_MEMBER(
+            py_dict.get(),
+            info,
+            stream_name,
+            PyUnicode_FromString);
+    RTI_PY_ADD_DICT_ITEM_MEMBER(
+            py_dict.get(),
+            info.type_info,
+            type_name,
+            PyUnicode_FromString);
+
+    return py_dict.release();
+}
+
 DDS_InstanceHandle_t& to_native(DDS_InstanceHandle_t& dest, PyObject* py_handle)
 {
     if (!PyDict_Check(py_handle)) {

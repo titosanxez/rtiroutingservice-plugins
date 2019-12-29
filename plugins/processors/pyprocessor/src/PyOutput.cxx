@@ -10,19 +10,10 @@ namespace rti { namespace routing { namespace py {
 /*
  * --- PyOutput Python methods -------------------------------------------------
  */
-PyObject* PyOutput::name(PyOutput *self, void *closure)
+PyObject* PyOutput::info(PyOutput* self, void* closure)
 {
-    return PyUnicode_FromString(
-            RTI_RoutingServiceRoute_get_output_name(self->native_route(), self->get()));
-}
-
-PyObject* PyOutput::stream_name(PyOutput* self, void* closure)
-{
-    const RTI_RoutingServiceStreamInfo *stream_info;
-    stream_info = RTI_RoutingServiceRoute_get_output_stream_info(
-            self->native_route(),
-            self->get());
-    return PyUnicode_FromString(stream_info->stream_name);
+    Py_INCREF(self->info_.get());
+    return self->info_.get();
 }
 
 
@@ -68,17 +59,10 @@ PyObject* PyOutput::write(PyOutput *self, PyObject *args)
 
 static PyGetSetDef PyOutput_g_getsetters[] = {
     {
-        (char *) "name",
-        (getter) PyOutput::name,
+        (char *) "info",
+        (getter) PyOutput::info,
         (setter) NULL,
-        (char *) "name of this output",
-        NULL
-    },
-    {
-        (char *) "stream_name",
-        (getter) PyOutput::stream_name,
-        (setter) NULL,
-        (char *) "stream name to which the output writes samples",
+        (char *) "information properties of this output",
         NULL
     },
     {NULL}  /* Sentinel */
@@ -128,14 +112,29 @@ PyOutput::PyOutput(
         : PyNativeWrapper(native),
         native_route_(native_route),
         native_env_(environment),
+        info_(PyDict_New()),
         output_data_(dynamic_type(native, native_route))
 {
+    build_info();
 }
-
 
 RTI_RoutingServiceRoute* PyOutput::native_route()
 {
     return native_route_;
+}
+
+void PyOutput::build_info()
+{
+    const char *name =
+            RTI_RoutingServiceRoute_get_output_name(native_route(), get());
+    RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), name, PyUnicode_FromString);
+
+
+    const RTI_RoutingServiceStreamInfo& stream_info =
+            *RTI_RoutingServiceRoute_get_output_stream_info(
+                native_route(),
+                get());
+     RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), stream_info, from_native);
 }
 
 

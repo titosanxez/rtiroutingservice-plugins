@@ -80,19 +80,10 @@ void PySelector::build(
 /*
  * --- PyInput Python methods -------------------------------------------------
  */
-PyObject* PyInput::name(PyInput *self, void *closure)
+PyObject* PyInput::info(PyInput* self, void* closure)
 {
-    return PyUnicode_FromString(
-            RTI_RoutingServiceRoute_get_input_name(self->native_route(), self->get()));
-}
-
-PyObject* PyInput::stream_name(PyInput* self, void* closure)
-{
-    const RTI_RoutingServiceStreamInfo *stream_info;
-    stream_info = RTI_RoutingServiceRoute_get_input_stream_info(
-            self->native_route(),
-            self->get());
-    return PyUnicode_FromString(stream_info->stream_name);
+    Py_INCREF(self->info_.get());
+    return self->info_.get();
 }
 
 
@@ -114,17 +105,10 @@ PyObject* PyInput::read(PyInput* self, PyObject* args)
 
 static PyGetSetDef PyInput_g_getsetters[] = {
     {
-        (char *) "name",
-        (getter) PyInput::name,
+        (char *) "info",
+        (getter) PyInput::info,
         (setter) NULL,
-        (char *) "name of this input",
-        NULL
-    },
-    {
-        (char *) "stream_name",
-        (getter) PyInput::stream_name,
-        (setter) NULL,
-        (char *) "stream name from which the input reads samples",
+        (char *) "information properties of this input",
         NULL
     },
     {NULL}  /* Sentinel */
@@ -165,10 +149,12 @@ PyInput::PyInput(
         RTI_RoutingServiceEnvironment *environment)
         : PyNativeWrapper(native),
         native_route_(native_route),
-        native_env_(environment)
+        native_env_(environment),
+        info_(PyDict_New())
 {
-
+    build_info();
 }
+
 
 
 RTI_RoutingServiceRoute* PyInput::native_route()
@@ -254,6 +240,21 @@ PyObject* PyInput::read_or_take_w_selector(
 
     return py_samples;
 }
+
+void PyInput::build_info()
+{
+    const char *name =
+            RTI_RoutingServiceRoute_get_input_name(native_route(), get());
+    RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), name, PyUnicode_FromString);
+
+
+    const RTI_RoutingServiceStreamInfo& stream_info =
+            *RTI_RoutingServiceRoute_get_input_stream_info(
+                native_route(),
+                get());
+     RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), stream_info, from_native);
+}
+
 
 
 PyTypeObject* PyInputType::type()

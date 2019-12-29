@@ -42,14 +42,15 @@ public:
             RTI_RoutingServiceEnvironment *environment);
     RTI_RoutingServiceRoute *native_route();
 
-    static PyObject* name(PyOutput *self, void *closure);
-    static PyObject* stream_name(PyOutput *self,void *closure );
+    static PyObject* info(PyOutput *self,void *closure );
     static PyObject* write(PyOutput *self, PyObject *args);
 
 private:
+    void build_info();
+private:
     RTI_RoutingServiceRoute *native_route_;
     RTI_RoutingServiceEnvironment *native_env_;
-
+    PyObjectGuard info_;
     dds::core::xtypes::DynamicData output_data_;
 };
 

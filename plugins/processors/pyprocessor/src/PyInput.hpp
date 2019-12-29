@@ -52,10 +52,10 @@ public:
             RTI_RoutingServiceStreamReaderExt *native,
             RTI_RoutingServiceRoute *native_route,
             RTI_RoutingServiceEnvironment *environment);
+
     RTI_RoutingServiceRoute *native_route();
 
-    static PyObject* name(PyInput *self, void *closure);
-    static PyObject* stream_name(PyInput *self,void *closure );
+    static PyObject* info(PyInput *self,void *closure );
     static PyObject* take(PyInput *self, PyObject *arg);
     static PyObject* read(PyInput *self, PyObject *arg);
 
@@ -67,12 +67,14 @@ private:
             PyInput *self,
             PyObject *args,
             RTI_RoutingServiceStreamReaderExt_TakeWithSelectorFcn read_or_take);
+    void build_info();
 
 
 private:
     friend class PySelector;
     RTI_RoutingServiceRoute *native_route_;
     RTI_RoutingServiceEnvironment *native_env_;
+    PyObjectGuard info_;
 };
 
 
