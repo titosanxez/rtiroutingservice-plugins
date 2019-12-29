@@ -10,11 +10,21 @@ namespace rti { namespace routing { namespace py {
 /*
  * --- PyOutput Python methods -------------------------------------------------
  */
-PyObject* PyOutput::name(PyOutput *self, PyObject *Py_UNUSED(ignored))
+PyObject* PyOutput::name(PyOutput *self, void *closure)
 {
     return PyUnicode_FromString(
             RTI_RoutingServiceRoute_get_output_name(self->native_route(), self->get()));
 }
+
+PyObject* PyOutput::stream_name(PyOutput* self, void* closure)
+{
+    const RTI_RoutingServiceStreamInfo *stream_info;
+    stream_info = RTI_RoutingServiceRoute_get_output_stream_info(
+            self->native_route(),
+            self->get());
+    return PyUnicode_FromString(stream_info->stream_name);
+}
+
 
 PyObject* PyOutput::write(PyOutput *self, PyObject *args)
 {
@@ -56,14 +66,25 @@ PyObject* PyOutput::write(PyOutput *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyGetSetDef PyOutput_g_getsetters[] = {
+    {
+        (char *) "name",
+        (getter) PyOutput::name,
+        (setter) NULL,
+        (char *) "name of this output",
+        NULL
+    },
+    {
+        (char *) "stream_name",
+        (getter) PyOutput::stream_name,
+        (setter) NULL,
+        (char *) "stream name to which the output writes samples",
+        NULL
+    },
+    {NULL}  /* Sentinel */
+};
 
 static PyMethodDef PyOutput_g_methods[] = {
-    {
-        "name",
-        (PyCFunction) PyOutput::name,
-        METH_NOARGS,
-        "Return the name of this output"
-    },
     {
         "write",
         (PyCFunction) PyOutput::write,
@@ -80,9 +101,9 @@ static PyTypeObject PyOutput_g_type = {
     .tp_basicsize = sizeof(PyOutput),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyNativeWrapper<PyOutputType>::new_object,
     .tp_dealloc = PyNativeWrapper<PyOutputType>::delete_object,
-    .tp_methods = PyOutput_g_methods
+    .tp_methods = PyOutput_g_methods,
+    .tp_getset = PyOutput_g_getsetters
 };
 
 const dds::core::xtypes::DynamicType& dynamic_type(

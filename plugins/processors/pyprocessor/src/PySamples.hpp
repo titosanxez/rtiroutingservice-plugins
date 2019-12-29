@@ -38,7 +38,7 @@ public:
     typedef rti::routing::processor::LoanedSample<
             dds::core::xtypes::DynamicData,
             dds::sub::SampleInfo> native_sample;
-    PySample(const native_sample& sample);
+    PySample(const native_sample& sample, bool has_info);
     void* operator new(size_t size);
     void operator delete(void* object);
 

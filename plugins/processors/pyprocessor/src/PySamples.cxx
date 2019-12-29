@@ -40,9 +40,10 @@ PyObject* PySample::info(PySample* self, void*)
  */
 
 PySample::PySample(
-        const native_sample& loaned_sample)
+        const native_sample& loaned_sample,
+        bool has_info)
         :data_(DynamicDataConverter::to_dictionary(loaned_sample.data())),
-        info_(SampleInfoConverter::to_dictionary(loaned_sample.info()))
+        info_(has_info ? SampleInfoConverter::to_dictionary(loaned_sample.info()) : NULL)
 {
 }
 

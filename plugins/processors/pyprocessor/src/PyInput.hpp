@@ -23,6 +23,16 @@
 
 namespace rti { namespace routing { namespace py {
 
+class PySelector
+{
+public:
+    static void build(
+            RTI_RoutingServiceSelectorState& state,
+            PyObject *py_dict);
+
+    const static RTI_RoutingServiceSelectorState& DEFAULT_STATE();
+};
+
 class PyInputType
 {
 public:
@@ -44,13 +54,23 @@ public:
             RTI_RoutingServiceEnvironment *environment);
     RTI_RoutingServiceRoute *native_route();
 
-    static PyObject* name(PyInput *self, PyObject *Py_UNUSED(ignored));
-    static PyObject* take(PyInput *self, PyObject *Py_UNUSED(ignored));
+    static PyObject* name(PyInput *self, void *closure);
+    static PyObject* stream_name(PyInput *self,void *closure );
+    static PyObject* take(PyInput *self, PyObject *arg);
+    static PyObject* read(PyInput *self, PyObject *arg);
 
 private:
-    static PyObject* sample_list(native_loaned_samples& loaned_samples);
+    static PyObject* sample_list(
+            native_loaned_samples& loaned_samples,
+            bool has_infos);
+    static PyObject* read_or_take_w_selector(
+            PyInput *self,
+            PyObject *args,
+            RTI_RoutingServiceStreamReaderExt_TakeWithSelectorFcn read_or_take);
+
 
 private:
+    friend class PySelector;
     RTI_RoutingServiceRoute *native_route_;
     RTI_RoutingServiceEnvironment *native_env_;
 };

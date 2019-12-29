@@ -96,7 +96,6 @@ static PyTypeObject PyRoute_g_type = {
     .tp_basicsize = sizeof(PyRoute),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyNativeWrapper<PyRouteType>::new_object,
     .tp_dealloc = PyNativeWrapper<PyRouteType>::delete_object,
     .tp_methods = PyRoute_g_methods
 };

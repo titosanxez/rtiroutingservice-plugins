@@ -42,7 +42,8 @@ public:
             RTI_RoutingServiceEnvironment *environment);
     RTI_RoutingServiceRoute *native_route();
 
-    static PyObject* name(PyOutput *self, PyObject *Py_UNUSED(ignored));
+    static PyObject* name(PyOutput *self, void *closure);
+    static PyObject* stream_name(PyOutput *self,void *closure );
     static PyObject* write(PyOutput *self, PyObject *args);
 
 private:

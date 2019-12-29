@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -11,30 +12,39 @@ class MyProcessor(proc.Processor):
         print('MyProcessor constructor called')
 
     def on_input_enabled(self, route, input):
-        print('input_at: ' + route.input(0).name())
-        print('on_input_enabled: ' + self.my_data + ' input=' + input.name())
+        print('input_at: ' + route.input(0).name)
+        print('on_input_enabled: ' + self.my_data + ' input=' + input.name \
+            + ', stream=' + input.stream_name)
 
     def on_input_disabled(self, route, input):
-        print('on_input_disabled: ' + self.my_data + ' input=' + input.name())
+        print('on_input_disabled: ' + self.my_data + ' input=' + input.name)
 
     def on_output_enabled(self, route, output):
-        print('output_at: ' + route.output(0).name())
-        print('on_output_enabled: ' + self.my_data + ' output=' + output.name())
+        print('output_at: ' + route.output(0).name)
+        print('on_output_enabled: ' + self.my_data + ' output=' + output.name \
+             + ', stream=' + output.stream_name)
 
     def on_output_disabled(self, route, output):
-       print('on_input_disabled: ' + self.my_data + ' output=' + output.name())
+       print('on_output_disabled: ' + self.my_data + ' output=' + output.name)
 
     def on_data_available(self, route):
         try:
             print('on_data_available: ' + self.my_data)
-            samples = route.input(0).take();
+            samples = route.input(0).read();
             print(len(samples))
             print(samples[0].data)
-            print(samples[0].info)
+            #print(samples[0].info['instance_handle'])
             route.output(0).write(samples[0].data);
+            time.sleep(1)
+            samples = route.input(0).read(\
+                dict(instance=samples[0].info['instance_handle']));
+            print(samples[0].data)
 #            samples[0].data = 0;
         except AttributeError as atterr:
             print(atterr)
+        except TypeError as typerr:
+            print(typerr)
+
 
 
 class MyProcessorPlugin(proc.ProcessorPlugin):

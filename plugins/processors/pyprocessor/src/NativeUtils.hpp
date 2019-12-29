@@ -60,9 +60,33 @@ private:
     PyObject *object_;
 };
 
+template <typename T, typename PYOBJECT>
+struct PyAllocatorGeneric : public PYOBJECT
+{
+    void* operator new(size_t size)
+    {
+        return T::type()->tp_alloc(T::type(), size);
+    }
+
+    void operator delete(void* object)
+    {
+        Py_TYPE(object)->tp_free((PyObject *) object);
+    }
+
+    static void delete_object(PyObject *object)
+    {
+        Py_TYPE(object)->tp_free((PyObject *) object);
+    }
+
+};
 
 template <typename T>
-struct  PyNativeWrapper : public PyObject
+struct PyAllocator : public PyAllocatorGeneric<T, PyObject>
+{
+};
+
+template <typename T>
+struct  PyNativeWrapper : public PyAllocator<T>
 {
 public:
 
@@ -75,32 +99,9 @@ public:
     {
     }
 
-    void* operator new(size_t size)
-    {
-        return T::type()->tp_alloc(T::type(), size);
-    }
-
-    void operator delete(void* object)
-    {
-        Py_TYPE(object)->tp_free((PyObject *) object);
-    }
-
     typename T::native_type* get()
     {
         return native_;
-    }
-
-    static PyObject * new_object(
-            PyTypeObject *type,
-            PyObject *args,
-            PyObject *kwds)
-    {
-        return type->tp_alloc(type, type->tp_basicsize);
-    }
-
-    static void delete_object(PyObject *object)
-    {
-        Py_TYPE(object)->tp_free((PyObject *) object);
     }
 
 protected:
@@ -151,7 +152,13 @@ PyObject* from_native(
 PyObject* from_native(
         const DDS_SampleIdentity_t& identity);
 
+PyObject* from_native(
+        const RTICdrOctet *byte_array,
+        int32_t size);
 
+DDS_InstanceHandle_t& to_native(
+        DDS_InstanceHandle_t& dest,
+        PyObject* py_handle);
 
 class SampleInfoConverter {
 

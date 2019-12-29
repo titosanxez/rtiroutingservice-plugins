@@ -5,29 +5,19 @@
 namespace rti { namespace routing { namespace py {
 
 
-PyObject* from_native_long_array(
-        void* array,
+PyObject* from_native(
+        const RTICdrOctet *byte_array,
         int32_t size)
 {
-    int32_t *typed_array = (int32_t *) array;
-    PyObjectGuard py_list = PyList_New(size);
-    if (py_list.get() == NULL) {
+    PyObject* py_bytes = PyBytes_FromStringAndSize(
+            (const char *) byte_array,
+            size);
+    if (py_bytes == NULL) {
         PyErr_Print();
-        throw dds::core::Error("from_native: error creating Python list");
-    }
-    for (int i = 0; i < size; i++) {
-        if (PyList_SetItem(
-                py_list.get(),
-                i,
-                PyLong_FromLong(typed_array[i])) != 0) {
-            PyErr_Print();
-            throw dds::core::Error("from_native: error inserting element["
-                    + std::to_string(i)
-                    + "]");
-        }
+        throw dds::core::Error("from_native: error creating byte array");
     }
 
-    return py_list.release();
+    return py_bytes;
 }
 
 PyObject* from_native(
@@ -68,28 +58,25 @@ PyObject* from_native(const DDS_InstanceHandle_t& handle)
     if (PyDict_SetItemString(
             py_dict.get(),
             "valid",
-            PyBool_FromLong(handle.isValid)) == -1) {
+            PyLong_FromLong(handle.isValid)) == -1) {
         PyErr_Print();
         throw dds::core::Error("from_native: error setting valid element");
     }
 
-    PyObjectGuard py_list = from_native_array<RTICdrOctet, long>(
+    PyObjectGuard py_bytes = from_native(
             handle.keyHash.value,
-            handle.keyHash.length,
-            PyLong_FromLong);
-    if (py_list.get() == NULL) {
+            handle.keyHash.length);
+    if (py_bytes.get() == NULL) {
         PyErr_Print();
         throw dds::core::Error("from_native: error creating Python list");
     }
     if (PyDict_SetItemString(
             py_dict.get(),
             "key_hash",
-            py_list.get()) == -1) {
+            py_bytes.get()) == -1) {
         PyErr_Print();
         throw dds::core::Error("from_native: error setting key_hash element");
     }
-    py_list.release();
-
 
     return py_dict.release();
 }
@@ -122,10 +109,7 @@ PyObject* from_native(const DDS_SequenceNumber_t& sn)
 
 PyObject* from_native(const DDS_GUID_t& guid)
 {
-    return from_native_array<DDS_Octet, long>(
-            guid.value,
-            DDS_GUID_LENGTH,
-            PyLong_FromLong);
+    return from_native(guid.value, DDS_GUID_LENGTH);
 }
 
 PyObject* from_native(
@@ -202,6 +186,39 @@ PyObject* from_native(const DDS_Time_t& time)
     }
 
     return py_dict.release();
+}
+
+DDS_InstanceHandle_t& to_native(DDS_InstanceHandle_t& dest, PyObject* py_handle)
+{
+    if (!PyDict_Check(py_handle)) {
+        throw dds::core::Error("to_native: object is not a dictionary");
+    }
+
+    PyObject *py_valid = PyDict_GetItemString(py_handle, "valid");
+    if (py_valid == NULL) {
+        throw dds::core::Error("to_native: member=valid not found");
+    } else if (!PyLong_Check(py_valid)) {
+        throw dds::core::Error("to_native: member=valid is not an integer");
+    }
+    dest.isValid = (int32_t) PyLong_AsLong(py_valid);
+
+    PyObject *py_key_hash = PyDict_GetItemString(py_handle, "key_hash");
+    if (py_key_hash == NULL) {
+        throw dds::core::Error("to_native: member=key_hash not found");
+    } else if (!PyBytes_Check(py_key_hash)) {
+        throw dds::core::Error("to_native: member=key_hash is not a list");
+    } else if (PyBytes_GET_SIZE(py_key_hash) != MIG_RTPS_KEY_HASH_MAX_LENGTH) {
+         throw dds::core::Error(
+                 "to_native: member=key_hash list must have size="
+                 + std::to_string(MIG_RTPS_KEY_HASH_MAX_LENGTH));
+    }
+
+    std::memcpy(
+            dest.keyHash.value,
+            PyBytes_AsString(py_key_hash),
+            MIG_RTPS_KEY_HASH_MAX_LENGTH);
+
+    return dest;
 }
 
 
