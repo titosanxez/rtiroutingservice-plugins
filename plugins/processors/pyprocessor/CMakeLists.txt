@@ -16,22 +16,18 @@ project (ShapesProcessor)
 # Find RTI Connext dependencies
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CONNEXTDDS_DIR}/resource/cmake")
 find_package(
-    RTIConnextDDS "6.0.0"
+    RTIConnextDDS "6.0.1"
     REQUIRED
     COMPONENTS
         core
         routing_service
     )
 
-find_library(
-    PYTHON_LIB
-    python3.6
-    /usr/local/Cellar/python3/3.6.5_1/Frameworks/Python.framework/Versions/3.6/lib
-)
 
+find_package(PythonLibs 3.6 REQUIRED)
 
 # Define the library that will provide the  Processor plugin
-add_library(pyproc
+add_library(rtirspyprocessor
     "${CMAKE_CURRENT_SOURCE_DIR}/src/NativeUtils.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyDynamicData.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PySamples.cxx"
@@ -41,10 +37,10 @@ add_library(pyproc
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyProcessor.cxx")
 
 # Set target properties for lang requirement output library name
-set_target_properties(pyproc
+set_target_properties(rtirspyprocessor
     PROPERTIES
         CXX_STANDARD 11
-        OUTPUT_NAME_DEBUG pyprocd
+        OUTPUT_NAME_DEBUG rtirspyprocessord
         LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
         LIBRARY_OUTPUT_DIRECTORY_RELEASE "${output_dir}"
         LIBRARY_OUTPUT_DIRECTORY_DEBUG "${output_dir}"
@@ -56,13 +52,13 @@ set_target_properties(pyproc
         RUNTIME_OUTPUT_DIRECTORY_DEBUG "${output_dir}"
 )
 
-target_link_libraries(pyproc
+target_link_libraries(rtirspyprocessor
     RTIConnextDDS::cpp2_api
     RTIConnextDDS::routing_service_infrastructure
-    ${PYTHON_LIB})
+    ${PYTHON_LIBRARIES})
 
-target_include_directories(pyproc
+target_include_directories(rtirspyprocessor
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"
-        "/usr/local/Cellar/python3/3.6.5_1/Frameworks/Python.framework/Versions/3.6/include/python3.6m"
+        "${PYTHON_INCLUDE_DIRS}"
 )
