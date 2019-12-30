@@ -76,10 +76,10 @@ void PySelector::build(
     }
 }
 
-
 /*
  * --- PyInput Python methods -------------------------------------------------
  */
+
 PyObject* PyInput::info(PyInput* self, void* closure)
 {
     Py_INCREF(self->info_.get());
@@ -155,6 +155,12 @@ PyInput::PyInput(
     build_info();
 }
 
+
+
+const char* PyInput::name()
+{
+    return RTI_RoutingServiceRoute_get_input_name(native_route(), get());
+}
 
 
 RTI_RoutingServiceRoute* PyInput::native_route()
@@ -243,10 +249,8 @@ PyObject* PyInput::read_or_take_w_selector(
 
 void PyInput::build_info()
 {
-    const char *name =
-            RTI_RoutingServiceRoute_get_input_name(native_route(), get());
+    const char *name = this->name();
     RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), name, PyUnicode_FromString);
-
 
     const RTI_RoutingServiceStreamInfo& stream_info =
             *RTI_RoutingServiceRoute_get_input_stream_info(

@@ -13,6 +13,68 @@
 
 namespace rti { namespace routing { namespace py {
 
+
+class PyRoute;
+
+class PyInputAccessorType {
+
+    public:
+    static PyTypeObject* type();
+    static const std::string& name();
+};
+
+class PyInputAccessor : public PyAllocatorGeneric<PyInputAccessorType, PyObject> {
+public:
+    PyInputAccessor(PyRoute *py_route);
+
+    static
+    Py_ssize_t count(PyInputAccessor *self);
+
+    static
+    PyObject* binary(PyInputAccessor *self, PyObject *key);
+
+    static
+    PyObject* get_iterator(PyInputAccessor *self);
+
+    static
+    PyObject* iterator_next(PyInputAccessor *self);
+
+private:
+    PyRoute *py_route_;
+    int32_t count_;
+    int32_t iterator_;
+};
+
+
+class PyOutputAccessorType {
+
+    public:
+    static PyTypeObject* type();
+    static const std::string& name();
+};
+
+class PyOutputAccessor : public PyAllocatorGeneric<PyOutputAccessorType, PyObject> {
+public:
+    PyOutputAccessor(PyRoute *py_route);
+
+    static
+    Py_ssize_t count(PyOutputAccessor *self);
+
+    static
+    PyObject* binary(PyOutputAccessor *self, PyObject *key);
+
+    static
+    PyObject* get_iterator(PyOutputAccessor *self);
+
+    static
+    PyObject* iterator_next(PyOutputAccessor *self);
+
+private:
+    PyRoute *py_route_;
+    int32_t count_;
+    int32_t iterator_;
+};
+
 class PyRouteType
 {
 public:
@@ -35,13 +97,23 @@ public:
 
     /* python methods */
     static
-    PyObject* name(PyRoute *self, PyObject *Py_UNUSED(ignored));
-
-    static
-    PyObject* inputs(PyRoute *self, PyObject *args);
-
-    static
     PyObject* outputs(PyRoute *self, PyObject *args);
+
+    static
+    Py_ssize_t port_count(PyRoute *self);
+
+    static
+    PyObject* binary(PyRoute *self, PyObject *key);
+
+    static
+    PyObject* in_accessor(PyRoute *self, void *closure);
+
+    static
+    PyObject* out_accessor(PyRoute *self, void *closure);
+
+private:
+    PyInputAccessor *input_accessor_;
+    PyOutputAccessor *output_accessor_;
 };
 
 }}}

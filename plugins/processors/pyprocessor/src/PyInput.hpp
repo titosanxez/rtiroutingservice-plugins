@@ -55,6 +55,7 @@ public:
 
     RTI_RoutingServiceRoute *native_route();
 
+    const char *name();
     static PyObject* info(PyInput *self,void *closure );
     static PyObject* take(PyInput *self, PyObject *arg);
     static PyObject* read(PyInput *self, PyObject *arg);

@@ -13,21 +13,21 @@ class ShapesProcessor(proc.Processor):
     def on_data_available(self, route):
         # Use squares as 'leading' input. For each Square instance, get the
         # equivalent instance from the Circle topic
-        squares = route.inputs("Square").read()
+        squares = route["Square"].read()
         for square in squares:
             if square.info['valid_data']:
                 # read equivalent existing instance in the Circles Topic
                 selector = dict(instance=square.info['instance_handle'])
-                circles = route.inputs('Circle').read(selector)
+                circles = route['Circle'].read(selector)
                 if len(circles) != 0 and circles[0].info['valid_data'] :
                     square.data['shapesize'] += circles[0].data['y']
 
-                route.outputs('Triangle').write(square.data)
+                route['Triangle'].write(square.data)
             else:
                 # dispose instance
-                route.outputs('Triangle').write(square.data, square.info)
+                route['Triangle'].write(square.data, square.info)
                 # clear cache
-                route.inputs('Square').take(dict(instance=square.info['instance_handle']))
+                route['Square'].take(dict(instance=square.info['instance_handle']))
 
 
 

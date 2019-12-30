@@ -458,6 +458,8 @@ void PyProcessorPlugin::load_module()
 
     // Add processor types to module
     add_type<PyRouteType>();
+    add_type<PyInputAccessorType>();
+    add_type<PyOutputAccessorType>();
     add_type<PyInputType>();
     add_type<PyOutputType>();
     add_type<PySampleType>();
