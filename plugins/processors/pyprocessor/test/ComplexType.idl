@@ -1,0 +1,42 @@
+struct InnerStructType {
+  long im1;
+  long im2;
+};
+
+struct StructType {
+  long m1;
+  long m2;
+  long m3[3];
+  InnerStructType inner;
+  sequence<long, 3> m4;
+};
+
+union UnionType switch (long) {
+    case 0:
+    long case1;
+
+    case 1:
+    StructType case2;
+
+    default:
+    long case_default;
+};
+
+typedef long SimpleArray[4];
+
+struct ComplexType {
+  long simple1;
+  long simple2;
+  //sequence<long, 10> longseq;
+  sequence<StructType, 10> structseq;
+  //sequence<UnionType, 10> unionseq;
+  StructType struct_member;
+  long array[4];
+  long matrix[3][3];
+  // @optional StructType complex_opt;
+  // @optional long simple_opt;
+  @optional SimpleArray array_opt;
+  UnionType union_member;
+  long hello3;
+  string strmember;
+};

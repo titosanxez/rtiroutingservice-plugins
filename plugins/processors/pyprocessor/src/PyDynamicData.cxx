@@ -39,18 +39,40 @@ DynamicDataConverter::DynamicDataConverter(const dds::core::xtypes::DynamicData&
     dds::core::xtypes::DynamicData& casted_data =
             const_cast<dds::core::xtypes::DynamicData&>(data);
     for (int i = 0; i < data.member_count(); i++) {
-        build_dictionary(casted_data, data.member_info(i + 1));
+        if (data.member_exists(i+1)) {
+            build_dictionary(casted_data, data.member_info(i + 1));
+        }
     }
 }
 
 PyObject* DynamicDataConverter::to_dictionary(
         const dds::core::xtypes::DynamicData& data)
 {
-
     DynamicDataConverter converter(data);
     return converter.context_stack_.top();
 }
 
+
+
+template<>
+void DynamicDataConverter::from_native_primitive<std::string, const char*>(
+        const dds::core::xtypes::DynamicData &data,
+        const rti::core::xtypes::DynamicDataMemberInfo& member_info,
+        std::function<PyObject*(const char*) > to_python_object)
+{
+
+    std::string value = data.value<std::string>(member_info.member_index());
+    if (PyDict_SetItemString(
+            context_stack_.top(),
+            member_info.member_name().c_str(),
+            to_python_object(value.c_str())) != 0) {
+        PyErr_Print();
+        throw dds::core::Error(
+                "DynamicDataConverter:"
+                + std::string(RTI_FUNCTION_NAME)
+                + "error member=" + member_info.member_name().to_std_string());
+    }
+}
 
 void DynamicDataConverter::build_dictionary(
         dds::core::xtypes::DynamicData& data,
@@ -68,115 +90,203 @@ void DynamicDataConverter::build_dictionary(
                     "DynamicDataConverter::build_dictionary: error creating dictionary");
         }
 
-        if (PyDict_SetItemString(
-                context_stack_.top(),
-                member_info.member_name().c_str(),
-                py_dict) != 0) {
-            PyErr_Print();
-            throw dds::core::Error(
-                    "DynamicDataConverter::build_dictionary: error member="
-                    + member_info.member_name().to_std_string()
-                    + "of type=struct");
+        if (PyDict_Check(context_stack_.top())) {
+            if (PyDict_SetItemString(
+                    context_stack_.top(),
+                    member_info.member_name().c_str(),
+                    py_dict) != 0) {
+                PyErr_Print();
+                throw dds::core::Error(
+                        "DynamicDataConverter::build_dictionary: error member="
+                        + member_info.member_name().to_std_string()
+                        + "of type=struct");
+            }
+        } else {
+            assert(PyList_Check(context_stack_.top()));
+            if (PyList_SetItem(
+                    context_stack_.top(),
+                    member_info.member_index() - 1,
+                    py_dict) != 0) {
+                PyErr_Print();
+                throw dds::core::Error(
+                        "DynamicDataConverter::build_dictionary: error member="
+                        + member_info.member_name().to_std_string()
+                        + "of type=struct");
+            }
         }
 
+
         context_stack_.push(py_dict);
+
         LoanedDynamicData loaned_member =
-                data.loan_value(member_info.member_name());
+                data.loan_value(member_info.member_index());
         for (int i = 0; i < loaned_member.get().member_count(); i++) {
-            build_dictionary(loaned_member.get(), loaned_member.get().member_info(i));
+            build_dictionary(
+                    loaned_member.get(),
+                    loaned_member.get().member_info(i + 1));
         }
+
         context_stack_.pop();
     }
         break;
 
-    case TypeKind::INT_32_TYPE:
+    case TypeKind::SEQUENCE_TYPE:
+    case TypeKind::ARRAY_TYPE:
     {
-        int32_t int_value = data.value<int32_t>(member_info.member_index());
-        if (PyDict_SetItemString(
-                context_stack_.top(),
-                member_info.member_name().c_str(),
-                PyLong_FromLong(int_value)) != 0) {
+        PyObject *py_list = PyList_New(member_info.element_count());
+        if (py_list == NULL) {
             PyErr_Print();
             throw dds::core::Error(
-                    "DynamicDataConverter::build_dictionary: error member="
-                    + member_info.member_name().to_std_string()
-                    + "of type=int32");
+                    "DynamicDataConverter::build_dictionary: error creating list");
         }
-    }
 
-    case TypeKind::INT_64_TYPE:
-    case TypeKind::ENUMERATION_TYPE:
-    {
-        int64_t int_value = data.value<int64_t>(member_info.member_index());
         if (PyDict_SetItemString(
                 context_stack_.top(),
                 member_info.member_name().c_str(),
-                PyLong_FromLongLong(int_value)) != 0) {
+                py_list) != 0) {
             PyErr_Print();
             throw dds::core::Error(
                     "DynamicDataConverter::build_dictionary: error member="
                     + member_info.member_name().to_std_string()
-                    + "of type=int64");
+                    + "of type=sequence");
         }
+
+        context_stack_.push(py_list);
+
+        LoanedDynamicData loaned_array =
+                data.loan_value(member_info.member_name());
+        for (uint32_t i = 0; i < member_info.element_count(); i++) {
+            build_dictionary(
+                    loaned_array.get(),
+                    loaned_array.get().member_info(i + 1));
+        }
+
+        context_stack_.pop();
     }
         break;
 
+
+    case TypeKind::BOOLEAN_TYPE:
+
+        from_native_primitive<DDS_Boolean, DDS_Long>(
+                data,
+                member_info,
+                PyLong_FromLong);
+
+        break;
+
+    case TypeKind::CHAR_8_TYPE:
+
+        from_native_primitive<DDS_Char, DDS_Long>(
+                data,
+                member_info,
+                PyLong_FromLong);
+
+        break;
+
+    case TypeKind::UINT_8_TYPE:
+
+        from_native_primitive<uint8_t, DDS_Long>(
+                data,
+                member_info,
+                PyLong_FromLong);
+
+        break;
+
+    case TypeKind::INT_16_TYPE:
+
+        from_native_primitive<int16_t, DDS_Long>(
+                data,
+                member_info,
+                PyLong_FromLong);
+
+        break;
+
+    case TypeKind::UINT_16_TYPE:
+
+        from_native_primitive<uint16_t, DDS_Long>(
+                data,
+                member_info,
+                PyLong_FromLong);
+
+        break;
+
+    case TypeKind::INT_32_TYPE:
+
+        from_native_primitive<int32_t, DDS_Long>(
+                data,
+                member_info,
+                PyLong_FromLong);
+
+        break;
+
+    case TypeKind::UINT_32_TYPE:
+
+        from_native_primitive<uint32_t, DDS_UnsignedLong>(
+                data,
+                member_info,
+                PyLong_FromUnsignedLong);
+
+        break;
+
+    case TypeKind::INT_64_TYPE:
+    case TypeKind::ENUMERATION_TYPE:
+
+        from_native_primitive<int64_t, DDS_LongLong>(
+                data,
+                member_info,
+                PyLong_FromLongLong);
+
+        break;
+
+    case TypeKind::UINT_64_TYPE:
+
+        from_native_primitive<uint64_t, DDS_UnsignedLongLong>(
+                data,
+                member_info,
+                PyLong_FromUnsignedLong);
+
+        break;
+
     case TypeKind::STRING_TYPE:
-    {
-        std::string string_value = data.value<std::string>(member_info.member_index());
-        if (PyDict_SetItemString(
-                context_stack_.top(),
-                member_info.member_name().c_str(),
-                PyUnicode_FromString(string_value.c_str())) != 0) {
-            PyErr_Print();
-            throw dds::core::Error(
-                    "DynamicDataConverter::build_dictionary: error member="
-                    + member_info.member_name().to_std_string()
-                    + "of type=string");
-        }
-    }
+
+        from_native_primitive<std::string, const char*>(
+                data,
+                member_info,
+                PyUnicode_FromString);
 
         break;
 
     case TypeKind::FLOAT_32_TYPE:
     {
-        float_t float_value = data.value<float_t>(member_info.member_index());
-        if (PyDict_SetItemString(
-                context_stack_.top(),
-                member_info.member_name().c_str(),
-                PyFloat_FromDouble(float_value)) != 0) {
-            PyErr_Print();
-            throw dds::core::Error(
-                    "DynamicDataConverter::build_dictionary: error member="
-                    + member_info.member_name().to_std_string()
-                    + "of type=float32");
-        }
+        from_native_primitive<float_t, double>(
+                data,
+                member_info,
+                PyFloat_FromDouble);
     }
 
         break;
 
     case TypeKind::FLOAT_64_TYPE:
     {
-        double double_value = data.value<double>(member_info.member_index());
-        if (PyDict_SetItemString(
-                context_stack_.top(),
-                member_info.member_name().c_str(),
-                PyFloat_FromDouble(double_value)) != 0) {
-            PyErr_Print();
-            throw dds::core::Error(
-                    "DynamicDataConverter::build_dictionary: error member="
-                    + member_info.member_name().to_std_string()
-                    + "of type=float32");
-        }
+        from_native_primitive<double, double>(
+                data,
+                member_info,
+                PyFloat_FromDouble);
     }
 
         break;
 
     default:
-        throw dds::core::Error(
-                "DynamicDataConverter::build unsupported type for member="
-                + member_info.member_name().to_std_string());
-
+        std::string message =
+                "unsupported type for member="
+                + member_info.member_name().to_std_string()
+                + ". Skipping deserialization.";
+        DDSLog_logWithFunctionName(
+                RTI_LOG_BIT_WARN,
+                "DynamicDataConverter::build",
+                &RTI_LOG_ANY_s,
+                message.c_str());
     }
 
 //        switch (current_info.type_kind().underlying()) {
@@ -195,22 +305,6 @@ void DynamicDataConverter::build_dictionary(
 //        }
 //        break;
 //
-//    case TypeKind::STRUCTURE_TYPE:
-//    {
-//        const StructType& struct_type =
-//                static_cast<const StructType&> (member_type);
-//
-//        // Type can be extended, so a parent will exist
-//        if (struct_type.has_parent()) {
-//            build_column_info(
-//                    current_info,
-//                    struct_type.parent());
-//        }
-//
-//        // Recurse members
-//        build_complex_member_column_info(current_info, struct_type);
-//        }
-//        break;
 //
 //    case TypeKind::ARRAY_TYPE:
 //    {

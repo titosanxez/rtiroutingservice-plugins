@@ -39,22 +39,23 @@ PyObject* PySample::info(PySample* self, void*)
  */
 
 
-PyObject* PySample::build_data(const native_sample& sample, bool has_info)
+PyObject* PySample::build_data(
+        const native_data* data,
+        const native_info* info)
 {
-    if (has_info && !sample.info().valid()) {
+    if (info != NULL && !info->valid()) {
         /* empty data */
         return PyDict_New();
     }
 
-    return DynamicDataConverter::to_dictionary(sample.data());
+    return DynamicDataConverter::to_dictionary(*data);
 }
 
 
 PySample::PySample(
-        const native_sample& loaned_sample,
-        bool has_info)
-        :data_(build_data(loaned_sample, has_info)),
-        info_(has_info ? from_native(loaned_sample.info()->native()) : NULL)
+        const native_data* data, const native_info *info)
+        :data_(build_data(data, info)),
+        info_((info != NULL) ? from_native(info->extensions().native()) : NULL)
 {
 }
 

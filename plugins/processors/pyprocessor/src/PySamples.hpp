@@ -35,10 +35,9 @@ public:
 
 class PySample : public PyObject {
 public:
-    typedef rti::routing::processor::LoanedSample<
-            dds::core::xtypes::DynamicData,
-            dds::sub::SampleInfo> native_sample;
-    PySample(const native_sample& sample, bool has_info);
+    typedef dds::core::xtypes::DynamicData native_data;
+    typedef dds::sub::SampleInfo native_info;
+    PySample(const native_data* data, const native_info *info);
     void* operator new(size_t size);
     void operator delete(void* object);
 
@@ -48,8 +47,8 @@ public:
 
 private:
     static PyObject* build_data(
-            const native_sample& sample,
-            bool has_info);
+            const native_data* data,
+            const native_info *info);
 private:
     PyObject* data_; //as dictionary
     PyObject *info_; //as dictionary

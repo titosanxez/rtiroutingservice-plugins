@@ -45,8 +45,9 @@ class PyInput : public PyNativeWrapper<PyInputType>
 {
 public:
     typedef RTI_RoutingServiceStreamReaderExt native_type;
-    typedef dds::core::xtypes::DynamicData native_data_type;
-    typedef rti::routing::processor::LoanedSamples<native_data_type> native_loaned_samples;
+    typedef dds::core::xtypes::DynamicData native_data;
+     typedef dds::sub::SampleInfo native_info;
+    typedef rti::routing::processor::detail::NativeSamples native_samples;
 
     PyInput(
             RTI_RoutingServiceStreamReaderExt *native,
@@ -62,8 +63,7 @@ public:
 
 private:
     static PyObject* sample_list(
-            native_loaned_samples& loaned_samples,
-            bool has_infos);
+            const native_samples& loaned_samples);
     static PyObject* read_or_take_w_selector(
             PyInput *self,
             PyObject *args,
