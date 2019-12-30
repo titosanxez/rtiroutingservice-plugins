@@ -19,39 +19,44 @@ PyObject* PyOutput::info(PyOutput* self, void* closure)
 
 PyObject* PyOutput::write(PyOutput *self, PyObject *args)
 {
-    PyObject *py_dict = NULL;
+    static const RTI_RoutingServiceSample out_data =
+            reinterpret_cast<void **>(&self->output_data_);
+    static const RTI_RoutingServiceSample *out_data_list = &out_data;
+    static const RTI_RoutingServiceSampleInfo out_info =
+            reinterpret_cast<void **>(&self->output_info_);
+    const RTI_RoutingServiceSampleInfo *out_info_list = NULL;
+
+    PyObject *py_data = NULL;
+    PyObject *py_info = NULL;
     if (!PyArg_ParseTuple(
             args,
-            "O",
-            &py_dict)) {
+            "O!|O!",
+            &PyDict_Type,
+            &py_data,
+            &PyDict_Type,
+            &py_info)) {
         return NULL;
-    }
-
-    if (!PyDict_Check(py_dict)) {
-        PyErr_Format(PyExc_RuntimeError, "%s", "data is not a dictionary");
-        Py_RETURN_NONE;
     }
 
     try {
         DynamicDataConverter::to_dynamic_data(
                 self->output_data_,
-                py_dict);
-        const RTI_RoutingServiceSample out_samples[1] = {
-            const_cast<void *> (reinterpret_cast<const void *>(&self->output_data_))
-        };
-        const RTI_RoutingServiceSampleInfo out_infos[1] = {
-            const_cast<void *> (reinterpret_cast<const void *> (NULL))
-        };
+                py_data);
+        if (py_info != NULL) {
+            to_native(self->output_info_->native(), py_info);
+            out_info_list = &out_info;
+        }
 
         self->get()->write(
                 self->get()->stream_writer_data,
-                out_samples,
-                NULL,
+                out_data_list,
+                out_info_list,
                 1,
                 self->native_env_);
         RTI_ROUTING_THROW_ON_ENV_ERROR(self->native_env_);
     } catch (const std::exception &ex) {
         PyErr_Format(PyExc_RuntimeError, "%s", ex.what());
+        return NULL;
     }
 
     Py_RETURN_NONE;

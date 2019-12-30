@@ -47,6 +47,10 @@ public:
     static PyObject* info(PySample *self, void* closure);
 
 private:
+    static PyObject* build_data(
+            const native_sample& sample,
+            bool has_info);
+private:
     PyObject* data_; //as dictionary
     PyObject *info_; //as dictionary
 };

@@ -34,16 +34,27 @@ PyObject* PySample::info(PySample* self, void*)
 
     return Py_None;
 }
-
 /*
  * --- PySample class implementation ------------------------------------------
  */
 
+
+PyObject* PySample::build_data(const native_sample& sample, bool has_info)
+{
+    if (has_info && !sample.info().valid()) {
+        /* empty data */
+        return PyDict_New();
+    }
+
+    return DynamicDataConverter::to_dictionary(sample.data());
+}
+
+
 PySample::PySample(
         const native_sample& loaned_sample,
         bool has_info)
-        :data_(DynamicDataConverter::to_dictionary(loaned_sample.data())),
-        info_(has_info ? SampleInfoConverter::to_dictionary(loaned_sample.info()) : NULL)
+        :data_(build_data(loaned_sample, has_info)),
+        info_(has_info ? from_native(loaned_sample.info()->native()) : NULL)
 {
 }
 

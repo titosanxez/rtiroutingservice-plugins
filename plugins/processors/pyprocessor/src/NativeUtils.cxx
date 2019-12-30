@@ -5,6 +5,35 @@
 namespace rti { namespace routing { namespace py {
 
 
+/*
+ * --- From Native ------------------------------------------------------------
+ */
+
+#define PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(DATA, MEMBER) \
+{\
+    PyObjectGuard py_guard = from_native((DATA).MEMBER); \
+    if (PyDict_SetItemString( \
+            py_dict.get(), \
+            #MEMBER, \
+            py_guard.get()) == -1) {\
+        PyErr_Print();\
+        throw dds::core::Error("from_native: error setting member=" #MEMBER);\
+    }\
+    py_guard.release(); \
+}
+
+PyObject* from_native(
+        DDS_Boolean boolean_value)
+{
+    return PyLong_FromLong(boolean_value ? 1 : 0);
+}
+
+PyObject* from_native(
+        DDS_Long long_value)
+{
+    return PyLong_FromLong(long_value);
+}
+
 PyObject* from_native(
         const RTICdrOctet *byte_array,
         int32_t size)
@@ -209,6 +238,87 @@ PyObject* from_native(const RTI_RoutingServiceStreamInfo& info)
     return py_dict.release();
 }
 
+
+/*
+ * --- To Native -------------------------------------------------------------
+ */
+
+#define PY_NATIVE_UTILS_TO_NATIVE_MEMBER(DATA, MEMBER, TYPE) \
+{\
+    PyObject *py_item = PyDict_GetItemString(py_dict, #MEMBER); \
+    if (py_item != NULL) { \
+        if (!Py ## TYPE ## _Check(py_item)) {\
+            throw dds::core::Error("to_native: unexpected type of member="#MEMBER);\
+        }\
+        to_native((DATA).MEMBER, py_item); \
+    }\
+}
+
+
+DDS_Long to_native(
+        DDS_Long& dest,
+        PyObject* py_value)
+{
+    if (!PyLong_Check(py_value)) {
+        throw dds::core::Error("to_native: object is not a Long");
+    }
+
+    dest = (DDS_Long) PyLong_AsLong(py_value);
+    return dest;
+}
+
+DDS_UnsignedLong to_native(
+        DDS_UnsignedLong& dest,
+        PyObject* py_value)
+{
+    if (!PyLong_Check(py_value)) {
+        throw dds::core::Error("to_native: object is not a Long");
+    }
+
+    dest = (DDS_UnsignedLong) PyLong_AsLong(py_value);
+    return dest;
+}
+
+DDS_Boolean to_native(
+        DDS_Boolean& dest,
+        PyObject* py_value)
+{
+    if (!PyLong_Check(py_value)) {
+        throw dds::core::Error("to_native: object is not a long");
+    }
+
+    dest = PyLong_AsLong(py_value) ? DDS_BOOLEAN_TRUE : DDS_BOOLEAN_FALSE;
+    return dest;
+}
+
+DDS_SequenceNumber_t to_native(
+        DDS_SequenceNumber_t& dest,
+        PyObject* py_dict)
+{
+    if (!PyDict_Check(py_dict)) {
+        throw dds::core::Error("to_native: object is not a dictionary");
+    }
+
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(dest, low, Long);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(dest, high, Long);
+
+    return dest;
+}
+
+DDS_Time_t to_native(
+        DDS_Time_t& dest,
+        PyObject* py_dict)
+{
+    if (!PyDict_Check(py_dict)) {
+        throw dds::core::Error("to_native: object is not a dictionary");
+    }
+
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(dest, sec, Long);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(dest, nanosec, Long);
+
+    return dest;
+}
+
 DDS_InstanceHandle_t& to_native(DDS_InstanceHandle_t& dest, PyObject* py_handle)
 {
     if (!PyDict_Check(py_handle)) {
@@ -243,25 +353,71 @@ DDS_InstanceHandle_t& to_native(DDS_InstanceHandle_t& dest, PyObject* py_handle)
 }
 
 
-/*
- * --- PySampleInfoConverter --------------------------------------------------
- */
-#define PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(DATA, MEMBER) \
-{\
-    PyObjectGuard py_guard = from_native((DATA)->native().MEMBER); \
-    if (PyDict_SetItemString( \
-            py_dict.get(), \
-            #MEMBER, \
-            py_guard.get()) == -1) {\
-        PyErr_Print();\
-        throw dds::core::Error("from_native: error setting member=" #MEMBER);\
-    }\
-    py_guard.release(); \
+DDS_SampleStateKind to_native(
+        DDS_SampleStateKind& dest,
+        PyObject* py_state)
+{
+    if (!PyLong_Check(py_state)) {
+        throw dds::core::Error("to_native: object is not a long");
+    }
+
+    dest = (DDS_SampleStateKind) PyLong_AsUnsignedLong(py_state);
+    return dest;
+}
+
+DDS_ViewStateKind to_native(
+        DDS_ViewStateKind& dest,
+        PyObject* py_state)
+{
+    if (!PyLong_Check(py_state)) {
+        throw dds::core::Error("to_native: object is not a long");
+    }
+
+    dest = (DDS_ViewStateKind) PyLong_AsUnsignedLong(py_state);
+    return dest;
+}
+
+DDS_InstanceStateKind to_native(
+        DDS_InstanceStateKind& dest,
+        PyObject* py_state)
+{
+    if (!PyLong_Check(py_state)) {
+        throw dds::core::Error("to_native: object is not a long");
+    }
+
+    dest = (DDS_InstanceStateKind) PyLong_AsUnsignedLong(py_state);
+    return dest;
 }
 
 
-PyObject*
-SampleInfoConverter::to_dictionary(const dds::sub::SampleInfo& info)
+DDS_GUID_t& to_native(
+        DDS_GUID_t& dest,
+        PyObject* py_guid)
+{
+    if (!PyBytes_Check(py_guid)) {
+        throw dds::core::Error("to_native: object is not a byte array");
+    } else if (PyBytes_GET_SIZE(py_guid) != MIG_RTPS_KEY_HASH_MAX_LENGTH) {
+        throw dds::core::Error("to_native: invalid array size="
+                + std::to_string(PyBytes_GET_SIZE(py_guid))
+                + ". Expected size="
+                + std::to_string(MIG_RTPS_KEY_HASH_MAX_LENGTH));
+    }
+
+    std::memcpy(
+            dest.value,
+            PyBytes_AsString(py_guid),
+            MIG_RTPS_KEY_HASH_MAX_LENGTH);
+
+    return dest;
+}
+
+
+
+/*
+ * --- PySampleInfoConverter --------------------------------------------------
+ */
+
+PyObject* from_native(const DDS_SampleInfo& info)
 {
     PyObjectGuard py_dict = PyDict_New();
     if (py_dict.get() == NULL) {
@@ -269,24 +425,93 @@ SampleInfoConverter::to_dictionary(const dds::sub::SampleInfo& info)
         throw dds::core::Error("from_native: error creating Python dictionary");
     }
 
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, instance_handle);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, publication_handle);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, sample_state);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, view_state);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, instance_state);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, valid_data);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, flag);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, original_publication_virtual_sequence_number);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, original_publication_virtual_guid);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, related_original_publication_virtual_sequence_number);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, related_original_publication_virtual_guid);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, reception_sequence_number);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, publication_sequence_number);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, reception_timestamp);
-    PY_SAMPLE_INFO_CONVERTER_SET_MEMBER_NATIVE(info, source_timestamp);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, instance_handle);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, publication_handle);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, sample_state);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, view_state);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, instance_state);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, valid_data);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, flag);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, original_publication_virtual_sequence_number);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, original_publication_virtual_guid);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, related_original_publication_virtual_sequence_number);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, related_original_publication_virtual_guid);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, reception_sequence_number);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, publication_sequence_number);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, reception_timestamp);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, source_timestamp);
 
     return py_dict.release();
 }
+
+DDS_SampleInfo& to_native(
+        DDS_SampleInfo& info,
+        PyObject* py_dict)
+{
+    if (!PyDict_Check(py_dict)) {
+        throw dds::core::Error("to_native: object is not a dictionary");
+    }
+
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            instance_handle,
+            Dict);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            sample_state,
+            Long);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            view_state,
+            Long);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            instance_state,
+            Long);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            valid_data,
+            Long);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            flag,
+            Long);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            original_publication_virtual_sequence_number,
+            Dict);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            original_publication_virtual_guid,
+            Bytes);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            related_original_publication_virtual_sequence_number,
+            Dict);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            related_original_publication_virtual_guid,
+            Bytes);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            reception_sequence_number,
+            Dict);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            publication_sequence_number,
+            Dict);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            reception_timestamp,
+            Dict);
+    PY_NATIVE_UTILS_TO_NATIVE_MEMBER(
+            info,
+            source_timestamp,
+            Dict);
+
+    return info;
+}
+
 
 } } }
 

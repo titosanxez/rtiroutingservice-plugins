@@ -52,6 +52,7 @@ private:
     RTI_RoutingServiceEnvironment *native_env_;
     PyObjectGuard info_;
     dds::core::xtypes::DynamicData output_data_;
+    dds::sub::SampleInfo output_info_;
 };
 
 } } }

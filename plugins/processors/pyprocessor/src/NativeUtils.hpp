@@ -158,6 +158,12 @@ PyObject* from_native_array(
 }
 
 PyObject* from_native(
+        DDS_Boolean boolean_value);
+
+PyObject* from_native(
+        DDS_Long long_value);
+
+PyObject* from_native(
         const RTI_RoutingServiceProperties *properties);
 
 PyObject* from_native(
@@ -176,20 +182,54 @@ PyObject* from_native(
 PyObject* from_native(
         const RTI_RoutingServiceStreamInfo& info);
 
+PyObject * from_native(
+        const DDS_SampleInfo& info);
+
+DDS_Boolean to_native(
+        DDS_Boolean& dest,
+        PyObject* py_value);
+
+DDS_Long to_native(
+        DDS_Long& dest,
+        PyObject* py_value);
+
+DDS_UnsignedLong to_native(
+        DDS_UnsignedLong& dest,
+        PyObject* py_value);
+
+DDS_SequenceNumber_t to_native(
+        DDS_SequenceNumber_t& dest,
+        PyObject* py_dict);
+
+DDS_Time_t to_native(
+        DDS_Time_t& dest,
+        PyObject* py_dict);
+
 DDS_InstanceHandle_t& to_native(
         DDS_InstanceHandle_t& dest,
         PyObject* py_handle);
 
-class SampleInfoConverter {
+DDS_SampleStateKind to_native(
+        DDS_SampleStateKind& dest,
+        PyObject* py_state);
 
-public:
-    static PyObject * to_dictionary(
-            const dds::sub::SampleInfo& info);
+DDS_ViewStateKind to_native(
+        DDS_ViewStateKind& dest,
+        PyObject* py_state);
 
-    static void to_sample_info(
-            dds::sub::SampleInfo& info,
-            PyObject *py_dict);
-};
+DDS_InstanceStateKind to_native(
+        DDS_InstanceStateKind& dest,
+        PyObject* py_state);
+
+
+DDS_GUID_t& to_native(
+        DDS_GUID_t& dest,
+        PyObject* py_guid);
+
+DDS_SampleInfo& to_native(
+        DDS_SampleInfo&,
+        PyObject* py_info);
+
 
 } } }
 

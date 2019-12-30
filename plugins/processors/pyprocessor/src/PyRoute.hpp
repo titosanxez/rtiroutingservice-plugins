@@ -27,8 +27,10 @@ public:
     PyRoute(RTI_RoutingServiceRoute *native);
     PyInput* input(RTI_RoutingServiceStreamReaderExt *native_input);
     PyInput* input(int32_t index);
+    PyInput* input(const char *name);
     PyOutput* output(RTI_RoutingServiceStreamWriterExt *native_input);
     PyOutput* output(int32_t index);
+    PyOutput* output(const char *name);
     static PyTypeObject* type();
 
     /* python methods */
@@ -36,10 +38,10 @@ public:
     PyObject* name(PyRoute *self, PyObject *Py_UNUSED(ignored));
 
     static
-    PyObject* input_at(PyRoute *self, PyObject *args);
+    PyObject* inputs(PyRoute *self, PyObject *args);
 
     static
-    PyObject* output_at(PyRoute *self, PyObject *args);
+    PyObject* outputs(PyRoute *self, PyObject *args);
 };
 
 }}}

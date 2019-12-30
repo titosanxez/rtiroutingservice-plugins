@@ -28,16 +28,23 @@ PyObject* PyRoute::name(PyRoute *self, PyObject *Py_UNUSED(ignored))
     return PyUnicode_FromFormat("%s", "I'm a Python Route!");
 }
 
-PyObject* PyRoute::input_at(PyRoute *self, PyObject *args)
+PyObject* PyRoute::inputs(PyRoute *self, PyObject *args)
 {
-    int32_t index = 0;
-    if (!PyArg_ParseTuple(args, "i", &index)) {
+    PyObject *value = NULL;
+
+    if (!PyArg_ParseTuple(args, "O", &value)) {
         return NULL;
     }
 
     PyInput *py_input = NULL;
     try {
-        py_input = self->input(index);
+        if (PyLong_Check(value)) {
+            py_input = self->input(PyLong_AsLong(value));
+        } else if (PyUnicode_Check(value)) {
+            py_input = self->input(PyUnicode_AsUTF8(value));
+        } else {
+            throw dds::core::InvalidArgumentError("inputs: invalid argument type");
+        }
     } catch (const std::exception &ex) {
         PyErr_Format(PyExc_IndexError, "%s", ex.what());
         return NULL;
@@ -47,16 +54,24 @@ PyObject* PyRoute::input_at(PyRoute *self, PyObject *args)
     return py_input;
 }
 
-PyObject* PyRoute::output_at(PyRoute* self, PyObject* args)
+PyObject* PyRoute::outputs(PyRoute* self, PyObject* args)
 {
-    int32_t index = 0;
-    if (!PyArg_ParseTuple(args, "i", &index)) {
+    PyObject *value = NULL;
+
+    if (!PyArg_ParseTuple(args, "O", &value)) {
         return NULL;
     }
 
+
     PyOutput *py_output = NULL;
     try {
-        py_output = self->output(index);
+        if (PyLong_Check(value)) {
+             py_output = self->output(PyLong_AsLong(value));
+        } else if (PyUnicode_Check(value)) {
+            py_output = self->output(PyUnicode_AsUTF8(value));
+        } else {
+            throw dds::core::InvalidArgumentError("outputs: invalid argument type");
+        }
     } catch (const std::exception &ex) {
         PyErr_Format(PyExc_IndexError, "%s", ex.what());
         return NULL;
@@ -75,14 +90,14 @@ static PyMethodDef PyRoute_g_methods[] = {
         "Return the name, combining the first and last name"
     },
     {
-        "input",
-        (PyCFunction) PyRoute::input_at,
+        "inputs",
+        (PyCFunction) PyRoute::inputs,
         METH_VARARGS,
         "returns the input at the specified index"
     },
     {
-        "output",
-        (PyCFunction) PyRoute::output_at,
+        "outputs",
+        (PyCFunction) PyRoute::outputs,
         METH_VARARGS,
         "returns the output at the specified index"
     },
@@ -117,6 +132,18 @@ PyInput* PyRoute::input(int32_t index)
     return input(RTI_RoutingServiceRoute_get_input_at(native_, index));
 }
 
+PyInput* PyRoute::input(const char *name)
+{
+    RTI_RoutingServiceStreamReaderExt *native_input =
+            RTI_RoutingServiceRoute_lookup_input_by_name(native_, name);
+    if (native_input != NULL) {
+        return input(native_input);
+    }
+
+    throw dds::core::InvalidArgumentError(
+            "inputs: input with name=" + std::string(name) + " not found");
+}
+
 PyInput* PyRoute::input(RTI_RoutingServiceStreamReaderExt *native_input)
 {
     void *py_input = RTI_RoutingServiceRoute_get_stream_port_user_data(
@@ -133,6 +160,18 @@ PyOutput* PyRoute::output(int32_t index)
      return output(RTI_RoutingServiceRoute_get_output_at(native_, index));
 }
 
+
+PyOutput* PyRoute::output(const char *name)
+{
+    RTI_RoutingServiceStreamWriterExt *native_output =
+            RTI_RoutingServiceRoute_lookup_output_by_name(native_, name);
+    if (native_output != NULL) {
+        return output(native_output);
+    }
+
+    throw dds::core::InvalidArgumentError(
+            "outputs: output with name=" + std::string(name) + " not found");
+}
 
 PyOutput * PyRoute::output(RTI_RoutingServiceStreamWriterExt* native_output)
 {

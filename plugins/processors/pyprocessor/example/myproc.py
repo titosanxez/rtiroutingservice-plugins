@@ -12,14 +12,14 @@ class MyProcessor(proc.Processor):
         print('MyProcessor constructor called')
 
     def on_input_enabled(self, route, input):
-        print('input_at: ' + route.input(0).info['name'])
+        print('input_at: ' + route.inputs(0).info['name'])
         print('on_input_enabled: ' + self.my_data + ' input=' + str(input.info))
 
     def on_input_disabled(self, route, input):
         print('on_input_disabled: ' + self.my_data + ' input=' + input.info['name'])
 
     def on_output_enabled(self, route, output):
-        print('output_at: ' + route.output(0).info['name'])
+        print('output_at: ' + route.outputs(0).info['name'])
         print('on_output_enabled: ' + self.my_data + ' output=' + str(output.info))
 
     def on_output_disabled(self, route, output):
@@ -28,16 +28,16 @@ class MyProcessor(proc.Processor):
     def on_data_available(self, route):
         try:
             print('on_data_available: ' + self.my_data)
-            samples = route.input(0).read();
+            samples = route.inputs('Square').read();
             print(len(samples))
-            print(samples[0].data)
+            print(samples[0].data[0])
             #print(samples[0].info['instance_handle'])
-            route.output(0).write(samples[0].data);
+            route.outputs(0).write(samples[0].data);
             time.sleep(1)
             selector = dict(\
                 instance=samples[0].info['instance_handle'],
                 max_samples=5)
-            samples = route.input(0).read(selector)
+            samples = route.inputs(0).read(selector)
             print(samples[0].data)
             print(len(samples))
 #            samples[0].data = 0;
