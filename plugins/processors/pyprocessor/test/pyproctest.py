@@ -18,7 +18,7 @@ class MyProcessor(proc.Processor):
             print(len(samples))
             for sample in samples:
                 print(sample.data)
-                #print(json.loads(str(sample)))
+                print(json.dumps(sample.data))
         except AttributeError as atterr:
             print(atterr)
         except TypeError as typerr:

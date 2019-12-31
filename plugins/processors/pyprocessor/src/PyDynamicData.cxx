@@ -62,15 +62,28 @@ void DynamicDataConverter::from_native_primitive<std::string, const char*>(
 {
 
     std::string value = data.value<std::string>(member_info.member_index());
-    if (PyDict_SetItemString(
-            context_stack_.top(),
-            member_info.member_name().c_str(),
-            to_python_object(value.c_str())) != 0) {
-        PyErr_Print();
-        throw dds::core::Error(
-                "DynamicDataConverter:"
-                + std::string(RTI_FUNCTION_NAME)
-                + "error member=" + member_info.member_name().to_std_string());
+    if (PyDict_Check(context_stack_.top())) {
+        if (PyDict_SetItemString(
+                context_stack_.top(),
+                member_info.member_name().c_str(),
+                to_python_object(value.c_str())) != 0) {
+            PyErr_Print();
+            throw dds::core::Error(
+                    "DynamicDataConverter:"
+                    + std::string(RTI_FUNCTION_NAME)
+                    + "error member=" + member_info.member_name().to_std_string());
+        }
+    } else {
+        assert(PyList_Check(context_stack_.top()));
+        if (PyList_SetItem(
+                context_stack_.top(),
+                context_stack_.top().index,
+                to_python_object(value.c_str())) != 0) {
+            PyErr_Print();
+            throw dds::core::Error(
+                    "DynamicDataConverter::build_dictionary: error element="
+                    + std::to_string(context_stack_.top().index));
+        }
     }
 }
 
@@ -79,6 +92,7 @@ void DynamicDataConverter::build_dictionary(
         const rti::core::xtypes::DynamicDataMemberInfo& member_info)
 {
     using rti::core::xtypes::LoanedDynamicData;
+    using rti::core::xtypes::DynamicDataMemberInfo;
 
     switch (member_info.member_kind().underlying()) {
     case TypeKind::STRUCTURE_TYPE:
@@ -99,19 +113,19 @@ void DynamicDataConverter::build_dictionary(
                 throw dds::core::Error(
                         "DynamicDataConverter::build_dictionary: error member="
                         + member_info.member_name().to_std_string()
-                        + "of type=struct");
+                        + " of type=struct");
             }
         } else {
             assert(PyList_Check(context_stack_.top()));
             if (PyList_SetItem(
                     context_stack_.top(),
-                    member_info.member_index() - 1,
+                    context_stack_.top().index,
                     py_dict) != 0) {
                 PyErr_Print();
                 throw dds::core::Error(
                         "DynamicDataConverter::build_dictionary: error member="
                         + member_info.member_name().to_std_string()
-                        + "of type=struct");
+                        + " at index=" + std::to_string(context_stack_.top().index));
             }
         }
 
@@ -131,7 +145,6 @@ void DynamicDataConverter::build_dictionary(
         break;
 
     case TypeKind::SEQUENCE_TYPE:
-    case TypeKind::ARRAY_TYPE:
     {
         PyObject *py_list = PyList_New(member_info.element_count());
         if (py_list == NULL) {
@@ -139,7 +152,6 @@ void DynamicDataConverter::build_dictionary(
             throw dds::core::Error(
                     "DynamicDataConverter::build_dictionary: error creating list");
         }
-
         if (PyDict_SetItemString(
                 context_stack_.top(),
                 member_info.member_name().c_str(),
@@ -148,7 +160,7 @@ void DynamicDataConverter::build_dictionary(
             throw dds::core::Error(
                     "DynamicDataConverter::build_dictionary: error member="
                     + member_info.member_name().to_std_string()
-                    + "of type=sequence");
+                    + " of type=sequence");
         }
 
         context_stack_.push(py_list);
@@ -159,9 +171,106 @@ void DynamicDataConverter::build_dictionary(
             build_dictionary(
                     loaned_array.get(),
                     loaned_array.get().member_info(i + 1));
+            ++(context_stack_.top().index);
         }
 
         context_stack_.pop();
+    }
+        break;
+
+    case TypeKind::ARRAY_TYPE:
+    {
+
+        const StructType struct_type = static_cast<const StructType &>(data.type());
+        std::vector<uint32_t> dimension_indexes;
+        std::vector<uint32_t> dimensions;
+        uint32_t dimension_count = 0;
+        dds::core::xtypes::DynamicType member_type =
+                struct_type.member(member_info.member_index() - 1).type();
+
+        if (member_type.kind() == TypeKind::ARRAY_TYPE) {
+            const ArrayType& array_type =
+                    static_cast<const ArrayType &>(member_type);
+            dimension_count = array_type.dimension_count();
+            dimension_indexes.resize(dimension_count);
+            dimensions.resize(dimension_count);
+            for (uint32_t j = 0; j < dimension_count; j++) {
+                dimensions[j] = array_type.dimension(j);
+            }
+        } else {
+            // bug in dynamic type
+            dimension_count = 1;
+            dimension_indexes.resize(1);
+            dimensions.resize(1);
+            dimensions[0] = member_info.element_count();
+        }
+
+        LoanedDynamicData loaned_array =
+                data.loan_value(member_info.member_name());
+        uint32_t element_count = 0;
+        while (element_count < member_info.element_count()) {
+            for (uint32_t j = 0; j < dimension_count; j++) {
+
+                if ((j < dimension_count - 1)
+                        && dimension_indexes[j+1] != 0) {
+                    continue;
+                }
+
+                if (dimension_indexes[j] == 0) {
+                    PyObject *py_list = PyList_New(dimensions[j]);
+                    if (py_list == NULL) {
+                        PyErr_Print();
+                        throw dds::core::Error(
+                                "DynamicDataConverter::build_dictionary: error creating list");
+                    }
+                    if (PyDict_Check(context_stack_.top())) {
+                        if (PyDict_SetItemString(
+                                context_stack_.top(),
+                                member_info.member_name().c_str(),
+                                py_list) != 0) {
+                            PyErr_Print();
+                            throw dds::core::Error(
+                                    "DynamicDataConverter::build_dictionary: error member="
+                                    + member_info.member_name().to_std_string()
+                                    + " of type=array");
+                        }
+                    } else {
+                        assert(PyList_Check(context_stack_.top()));
+                        if (PyList_SetItem(
+                                context_stack_.top(),
+                                context_stack_.top().index,
+                                py_list) != 0) {
+                            PyErr_Print();
+                            throw dds::core::Error(
+                                    "DynamicDataConverter::build_dictionary: error member="
+                                    + member_info.member_name().to_std_string()
+                                    + " at index=" + std::to_string(context_stack_.top().index));
+                        }
+                    }
+                    context_stack_.push(py_list);
+                }
+            }
+
+
+            build_dictionary(
+                    loaned_array.get(),
+                    loaned_array.get().member_info(element_count + 1));
+            ++(context_stack_.top().index);
+
+            ++dimension_indexes[dimension_count - 1];
+            for (int64_t j = dimension_count - 1; j >= 0; j--) {
+                if (dimension_indexes[j] == dimensions[j]) {
+                    if (j > 0) {
+                        ++dimension_indexes[j - 1];
+                    }
+                    dimension_indexes[j] = 0;
+                    context_stack_.pop();
+                    ++(context_stack_.top().index);
+                }
+            }
+
+            ++element_count;
+        }
     }
         break;
 
@@ -288,102 +397,6 @@ void DynamicDataConverter::build_dictionary(
                 &RTI_LOG_ANY_s,
                 message.c_str());
     }
-
-//        switch (current_info.type_kind().underlying()) {
-//
-//    case TypeKind::UNION_TYPE:
-//    {
-//        const UnionType& union_type =
-//                static_cast<const UnionType&> (member_type);
-//        // Add discriminator column
-//        current_info.add_child(ColumnInfo(
-//               union_type.name() + ".disc",
-//               union_type.discriminator()));
-//
-//        // Recurse members
-//        build_complex_member_column_info(current_info, union_type);
-//        }
-//        break;
-//
-//
-//    case TypeKind::ARRAY_TYPE:
-//    {
-//        const ArrayType& array_type =
-//                static_cast<const ArrayType &>(member_type);
-//        std::vector<uint32_t> dimension_indexes;
-//        dimension_indexes.resize(array_type.dimension_count());
-//        uint32_t element_count = 0;
-//        while (element_count < array_type.total_element_count()) {
-//            std::ostringstream element_item;
-//            element_item << current_info.name();
-//            for (uint32_t j = 0; j < array_type.dimension_count(); j++) {
-//                element_item << "[" << dimension_indexes[j] << "]";
-//            }
-//            // add array item branch
-//            ColumnInfo& child = current_info.add_child(ColumnInfo(
-//                    element_item.str(),
-//                    array_type.content_type()));
-//            build_column_info(
-//                    child,
-//                    array_type.content_type());
-//
-//            ++dimension_indexes[array_type.dimension_count() - 1];
-//            for (uint32_t j = array_type.dimension_count() - 1; j > 0; j--) {
-//                if (dimension_indexes[j] ==  array_type.dimension(j)) {
-//                    ++dimension_indexes[j - 1];
-//                    dimension_indexes[j] = 0;
-//                }
-//            }
-//
-//            ++element_count;
-//        }
-//    }
-//        break;
-//
-//    case TypeKind::SEQUENCE_TYPE:
-//    {
-//        const SequenceType& sequence_type =
-//                static_cast<const SequenceType &> (member_type);
-//
-//        /* length column*/
-//        std::ostringstream length_item;
-//        length_item << current_info.name() << ".length";
-//        current_info.add_child(ColumnInfo(
-//                length_item.str(),
-//                rti::core::xtypes::PrimitiveType<int32_t>()));
-//
-//        /* item columns */
-//        for (uint32_t i = 0; i < sequence_type.bounds(); i++) {
-//            std::ostringstream element_item;
-//            element_item << current_info.name() << "[" << i << "]";
-//
-//            // add array item branch
-//            ColumnInfo& child = current_info.add_child(ColumnInfo(
-//                    element_item.str(),
-//                    sequence_type.content_type()));
-//            build_column_info(
-//                    child,
-//                    sequence_type.content_type());
-//        }
-//    }
-//        break;
-//
-//    case TypeKind::ALIAS_TYPE:
-//    {
-//        const AliasType& alias_type =
-//                static_cast<const AliasType &>(member_type);
-//        current_info.type_kind(alias_type.related_type().kind());
-//        build_column_info(
-//                current_info,
-//                alias_type.related_type());
-//    }
-//
-//        break;
-//
-//    default:
-//        // leaf reached
-//        break;
-//    }
 
 }
 

@@ -28,7 +28,8 @@ private:
     public:
 
         Context(PyObject *object)
-        : current(object)
+                : current(object),
+                index(0)
         {
         }
 
@@ -39,6 +40,7 @@ private:
 
     public:
         PyObject *current;
+        uint64_t index;
     };
 
 
@@ -66,12 +68,12 @@ private:
             assert(PyList_Check(context_stack_.top()));
             if (PyList_SetItem(
                     context_stack_.top(),
-                    member_info.member_index() - 1,
+                    context_stack_.top().index,
                     to_python_object(static_cast<U> (value))) != 0) {
                 PyErr_Print();
                 throw dds::core::Error(
                         "DynamicDataConverter::build_dictionary: error element="
-                        + std::to_string(member_info.member_index()-1));
+                        + std::to_string(context_stack_.top().index));
             }
         }
     }
