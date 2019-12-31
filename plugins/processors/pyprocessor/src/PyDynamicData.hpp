@@ -27,15 +27,17 @@ private:
     class Context {
     public:
 
-        Context(PyObject *object)
+        Context(PyObject *object, uint64_t the_index= 0)
                 : current(object),
-                index(0)
+                index(the_index)
         {
         }
 
         operator PyObject*() const
         {
             return current;
+
+            
         }
 
     public:

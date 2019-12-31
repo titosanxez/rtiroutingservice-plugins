@@ -19,6 +19,7 @@
 #include "dds/core/xtypes/AliasType.hpp"
 
 #include "PyDynamicData.hpp"
+#include "NativeUtils.hpp"
 
 
 using namespace dds::core::xtypes;
@@ -51,7 +52,6 @@ PyObject* DynamicDataConverter::to_dictionary(
     DynamicDataConverter converter(data);
     return converter.context_stack_.top();
 }
-
 
 
 template<>
@@ -418,36 +418,36 @@ void set_long(
     case TypeKind::INT_32_TYPE:
     case TypeKind::ENUMERATION_TYPE:
         data.value<int32_t>(
-                member_info.member_name().to_std_string(),
+                member_info.member_index(),
                 (int32_t) long_value);
         break;
 
     case TypeKind::INT_64_TYPE:
         data.value<int64_t>(
-                member_info.member_name().to_std_string(),
+                member_info.member_index(),
                 (int64_t) long_value);
         break;
     case TypeKind::UINT_16_TYPE:
         data.value<uint16_t>(
-                member_info.member_name().to_std_string(),
+                member_info.member_index(),
                 (uint16_t) long_value);
         break;
     case TypeKind::UINT_32_TYPE:
         data.value<uint32_t>(
-                member_info.member_name().to_std_string(),
+                member_info.member_index(),
                 (uint32_t) long_value);
         break;
 
     case TypeKind::UINT_64_TYPE:
         data.value<uint64_t>(
-                member_info.member_name().to_std_string(),
+                member_info.member_index(),
                 long_value);
 
         break;
     default:
         throw dds::core::InvalidArgumentError(
-                "inconsistent input value for member="
-                + member_info.member_name().to_std_string());
+                "inconsistent input value for member id="
+                + std::to_string(member_info.member_index()));
     }
 }
 
@@ -461,19 +461,19 @@ void set_float(
     switch (member_info.member_kind().underlying()) {
     case TypeKind::FLOAT_32_TYPE:
         data.value<float_t>(
-                member_info.member_name().to_std_string(),
+                member_info.member_index(),
                 (float_t) double_value);
         break;
 
     case TypeKind::FLOAT_64_TYPE:
         data.value<double>(
-                member_info.member_name().to_std_string(),
+                member_info.member_index(),
                 (double) double_value);
         break;
     default:
         throw dds::core::InvalidArgumentError(
-                "inconsistent input value for member="
-                + member_info.member_name().to_std_string());
+                "inconsistent input value for member id="
+                + std::to_string(member_info.member_index()));
     }
 }
 
@@ -481,32 +481,91 @@ void DynamicDataConverter::build_dynamic_data(
         dds::core::xtypes::DynamicData& data)
 {
     using rti::core::xtypes::LoanedDynamicData;
+    rti::core::xtypes::DynamicDataMemberInfo aux_minfo;
 
-    assert(PyDict_Check(context_stack_.top()));
+    assert(PyDict_Check(context_stack_.top())
+            || PyList_Check(context_stack_.top()));
 
-    PyObject *key = NULL;
-    PyObject *value = NULL;
-    Py_ssize_t pos = 0;
-    while (PyDict_Next(context_stack_.top(), &pos, &key, &value)) {
-        char *member_name = PyUnicode_AsUTF8(key);
-        if (member_name == NULL) {
-            PyErr_Print();
-            throw dds::core::Error(
-                    "DynamicDataConverter::build_dynamic_data: key is not a member name");
+
+    /* iterate dict or list */
+    PyObjectGuard top = PySequence_Fast(
+            (PyObject*) context_stack_.top(),
+            "");
+    for (uint64_t i = 0;
+         i < PySequence_Fast_GET_SIZE(top.get());
+         i++) {
+        PyObject *entry = PySequence_Fast_GET_ITEM(top.get(), i);
+        PyObject *value = NULL;
+
+        // of top is a dict, the entry is the key
+        if (PyDict_Check(context_stack_.top())) {
+            value = PyDict_GetItem(context_stack_.top(), entry);
+            char *member_name = PyUnicode_AsUTF8(entry);
+            if (member_name == NULL) {
+                PyErr_Print();
+                throw dds::core::Error(
+                        "DynamicDataConverter::build_dynamic_data: key is not a member name");
+            }
+            //member_id = data.member_info(member_name).member_index();
+            const StructType struct_type =
+                    static_cast<const StructType &>(data.type());
+            dds::core::xtypes::Member member = struct_type.member(member_name);
+            aux_minfo.native().member_id = member.get_id() + 1;
+            aux_minfo.native().member_name = member_name;
+            aux_minfo.native().member_kind = (DDS_TCKind)
+                    member.native()._representation._typeCode->_kind;
+        } else {
+            // if the top is a list, the entry is the value
+            value = entry;
+            const CollectionType collection_type =
+                    static_cast<const CollectionType &>(data.type());
+            aux_minfo.native().member_kind = (DDS_TCKind)
+                    collection_type.content_type().native()._data._kind;
+            aux_minfo.native().member_id = context_stack_.top().index  + i + 1;
         }
 
         if (PyDict_Check(value)) {
-            LoanedDynamicData loaned_member = data.loan_value(member_name);
+            LoanedDynamicData loaned_member =
+                    data.loan_value(aux_minfo.member_index());
             context_stack_.push(value);
             build_dynamic_data(loaned_member);
             context_stack_.pop();
+        } else if (PyList_Check(value)) {
+            bool top_is_list = PyList_Check(context_stack_.top());
+            uint32_t index_offset = 0;
+
+            /* One of the issues with the DynamicData API is that a
+             * multidimensional array is accessed with a single loaned member
+             * that represents a sequence of all the elements (e.g., for a
+             * matrix, that would be m by n).
+             *
+             * Nevertheless, the Python dictionary contains the proper
+             * representation (list of lists) so we need to:
+             * - loan only the first array member (subsequent attempts will fail)
+             * - Push down information about the offset within the loaned array
+             *   that the element should be set, which is given by the total
+             *   number of elements iterated from the current list (top) point
+             *   of view (e.g, in a matrix, that would be the number of columns)
+             */
+            if (top_is_list) {
+                index_offset = (PyList_GET_SIZE(value) * i);
+            }
+            context_stack_.push(Context(value, index_offset));
+
+            build_dynamic_data(
+                    top_is_list
+                    ? data
+                    : data.loan_value(aux_minfo.member_index()));
+
+            context_stack_.pop();
         } else if (PyLong_Check(value)) {
-            set_long(data, data.member_info(member_name), value);
+            set_long(data, aux_minfo, value);
         } else if (PyFloat_Check(value)) {
-            set_float(data, data.member_info(member_name), value);
+            set_float(data, aux_minfo, value);
         } else if (PyUnicode_Check(value)) {
-            data.value<std::string>(member_name, PyUnicode_AsUTF8(value));
+            data.value<std::string>(aux_minfo.member_index(), PyUnicode_AsUTF8(value));
         }
+
     }
 }
 

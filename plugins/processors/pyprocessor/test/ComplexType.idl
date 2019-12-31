@@ -11,6 +11,12 @@ struct StructType {
   sequence<long, 3> m4;
 };
 
+struct SimpleStruct {
+    long m1;
+    InnerStructType inner;
+    sequence<InnerStructType, 2> inner_seq;
+};
+
 union UnionType switch (long) {
     case 0:
     long case1;
@@ -25,16 +31,22 @@ union UnionType switch (long) {
 typedef long SimpleArray[4];
 
 struct ComplexType {
+  long array[4];
+  long s_matrix[3][3];
+  long h_matrix[2][3];
+  long v_matrix[3][2];
+  SimpleStruct c_array[2];
+
+  sequence<long, 10> longseq;
+  sequence<StructType, 10> structseq;
+  StructType struct_member;
   long simple1;
   long simple2;
-  //sequence<long, 10> longseq;
-  sequence<StructType, 10> structseq;
+
   //sequence<UnionType, 10> unionseq;
-  StructType struct_member;
-  long array[4];
-  long matrix[3][3];
+
   // @optional StructType complex_opt;
-  // @optional long simple_opt;
+  @optional long simple_opt;
   @optional SimpleArray array_opt;
   UnionType union_member;
   long hello3;

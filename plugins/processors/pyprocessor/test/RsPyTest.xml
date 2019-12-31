@@ -56,8 +56,12 @@
             <participant name="domain0">
                 <domain_id>0</domain_id>
             </participant>
+            <participant name="domain1">
+                <domain_id>1</domain_id>
+            </participant>
             <session>
                 <topic_route name="ComplexRoute">
+                    <route_types>true</route_types>
                     <processor plugin_name="PythonPluginLib::PyProcessor"/>
                     <input name="Square" participant="domain0">
                         <topic_name>Example ComplexType</topic_name>
@@ -65,7 +69,7 @@
                         <creation_mode>ON_DOMAIN_OR_ROUTE_MATCH</creation_mode>
                         <datareader_qos base_name="RsShapesQosLib::RsShapesQosProfile"/>
                     </input>
-                    <output name="Triangle" participant="domain0">
+                    <output name="Triangle" participant="domain1">
                          <topic_name>Example ComplexType</topic_name>
                         <registered_type_name>ComplexType</registered_type_name>
                         <creation_mode>IMMEDIATE</creation_mode>
