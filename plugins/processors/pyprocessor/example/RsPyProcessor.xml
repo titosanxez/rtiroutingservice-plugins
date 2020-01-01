@@ -45,6 +45,10 @@
                         <name>rti.routing.proc.py.class_name</name>
                         <value>MyProcessorPlugin</value>
                     </element>
+                    <element>
+                        <name>rti.routing.proc.py.module.autoreload</name>
+                        <value>false</value>
+                    </element>
                 </value>
             </property>
         </processor_plugin>

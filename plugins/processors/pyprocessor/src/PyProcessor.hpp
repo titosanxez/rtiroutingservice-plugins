@@ -38,16 +38,19 @@ public:
             const std::string& module);
 
     void class_name(const std::string& class_name);
-    const std::string& class_name();
+    const std::string& class_name() const;
     void module_path(const std::string& module_path);
-    const std::string& module_path();
+    const std::string& module_path() const;
     void module(const std::string& module_name);
-    const std::string& module();
+    const std::string& module() const;
+    void autoreload(bool value);
+    bool autoreload() const;
 
 private:
     std::string class_name_;
     std::string module_;
     std::string module_path_;
+    bool module_autoreload_;
 };
 
 class PyProcessorPlugin {
@@ -57,13 +60,18 @@ public:
     static const std::string BASE_PROCESSOR_TYPE_NAME;
     static const std::string MODULE_PROPERTY_NAME;
     static const std::string MODULE_PATH_PROPERTY_NAME;
-    static const std::string MODULE_PATH_VALUE_DEFAULT;
     static const std::string CLASS_NAME_PROPERTY_NAME;
+    static const std::string MODULE_AUTORELOAD_PROPERTY_NAME;
+    static const std::string MODULE_PATH_VALUE_DEFAULT;
 
     PyProcessorPlugin(
             const struct RTI_RoutingServiceProperties *native_properties);
 
     ~PyProcessorPlugin();
+
+    const PyProcessorPluginProperty& property() const;
+
+    void reload();
 
     PyObject* create_processor(
             PyRoute *route,
@@ -95,6 +103,8 @@ private:
     PyObject* find_pyproc_type(const std::string& name);
 private:
     PyProcessorPluginProperty property_;
+    /* user module */
+    PyObjectGuard py_user_module_;
     /* Reference to the pyproc module */
     PyObject *pyproc_module_;
     /* Reference to the Processor base type*/
@@ -103,6 +113,8 @@ private:
      * @brief Reference to the create_processor function
      */
     PyObject *create_processor_;
+    /* indicates whether module is reloading before each event */
+    bool autoreload_;
 };
 
 
@@ -128,6 +140,7 @@ public:
     RTI_RoutingServiceProcessor* native();
 
     PyProcessor(
+            PyProcessorPlugin *plugin,
             PyObject *py_processor,
             PyRoute *py_route);
 
@@ -136,6 +149,7 @@ public:
     PyObject* get();
 
 private:
+    PyProcessorPlugin *plugin_;
     RTI_RoutingServiceProcessor native_;
     // Reference to the Python processor implementation
     PyObject *py_processor_;

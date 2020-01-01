@@ -54,9 +54,11 @@ const char *PyProcessor_METHOD_NAMES[] = {
 };
 
 PyProcessor::PyProcessor(
+         PyProcessorPlugin *plugin,
         PyObject *py_processor,
         PyRoute *py_route)
-        : py_processor_(py_processor),
+        : plugin_(plugin),
+          py_processor_(py_processor),
           py_route_(py_route)
 {
     RTIOsapiMemory_zero(&native_, sizeof(native_));
@@ -86,6 +88,7 @@ PyProcessor::create_native(
         PyObjectGuard py_properties = from_native(native_properties);
 
         forwarder = new PyProcessor(
+                plugin,
                 plugin->create_processor(py_route, py_properties.get()),
                 py_route);
     } catch (const std::exception& ex) {
@@ -138,6 +141,10 @@ void PyProcessor::forward_on_route_event(
             static_cast<PyProcessor*> (native_processor_data);
 
     try {
+        if (forwarder->plugin_->property().autoreload()) {
+            forwarder->plugin_->reload();
+        }
+
         RTI_RoutingServiceRouteEventKind event_kind =
                 RTI_RoutingServiceRouteEvent_get_kind(native_route_event);
         // build up wrapper objects based on the event
@@ -337,7 +344,7 @@ void PyProcessorPluginProperty::class_name(const std::string& class_name)
     class_name_ = class_name;
 }
 
-const std::string& PyProcessorPluginProperty::class_name()
+const std::string& PyProcessorPluginProperty::class_name() const
 {
     return class_name_;
 }
@@ -347,7 +354,7 @@ void PyProcessorPluginProperty::module(const std::string& module_name)
     module_ = module_name;
 }
 
-const std::string& PyProcessorPluginProperty::module()
+const std::string& PyProcessorPluginProperty::module() const
 {
     return module_;
 }
@@ -357,10 +364,21 @@ void PyProcessorPluginProperty::module_path(const std::string& module_path)
     module_path_ = module_path;
 }
 
-const std::string& PyProcessorPluginProperty::module_path()
+const std::string& PyProcessorPluginProperty::module_path() const
 {
     return module_path_;
 }
+
+void PyProcessorPluginProperty::autoreload(bool value)
+{
+    module_autoreload_ = value;
+}
+
+bool PyProcessorPluginProperty::autoreload() const
+{
+    return module_autoreload_;
+}
+
 
 const std::string PyProcessorPlugin::BASE_PROCESSOR_MODULE_NAME =
         "rti.routing.proc";
@@ -379,6 +397,8 @@ const std::string PyProcessorPlugin::MODULE_PATH_VALUE_DEFAULT = ".";
 const std::string PyProcessorPlugin::CLASS_NAME_PROPERTY_NAME =
         "rti.routing.proc.py.class_name";
 
+const std::string PyProcessorPlugin::MODULE_AUTORELOAD_PROPERTY_NAME =
+        "rti.routing.proc.py.module.autoreload";
 
 template<typename PYOBJECTTYPE>
 void PyProcessorPlugin::add_type()
@@ -422,14 +442,14 @@ PyObject* PyProcessorPlugin::find_pyproc_type(const std::string& name)
 void PyProcessorPlugin::load_module()
 {
     // Import user module
-    PyObject *user_module = PyImport_ImportModule(property_.module().c_str());
-    if (user_module == NULL) {
+    py_user_module_ = PyImport_ImportModule(property_.module().c_str());
+    if (py_user_module_.get() == NULL) {
         PyErr_Print();
         throw dds::core::Error(
                 "load_module: error importing module="
                 + property_.module());
     }
-    PyObject *user_dict = PyModule_GetDict(user_module);
+    PyObject *user_dict = PyModule_GetDict(py_user_module_.get());
     if (user_dict == NULL) {
         PyErr_Print();
         throw dds::core::Error("load_module: error getting user dictionary");
@@ -495,7 +515,21 @@ PyProcessorPlugin::PyProcessorPlugin(
             property_.module((char *) native_properties->properties[i].value);
         } else if (CLASS_NAME_PROPERTY_NAME
                 == native_properties->properties[i].name) {
-             property_.class_name((char *) native_properties->properties[i].value);
+            property_.class_name((char *) native_properties->properties[i].value);
+        } else if (MODULE_AUTORELOAD_PROPERTY_NAME
+                == native_properties->properties[i].name) {
+            RTIBool boolValue = false;
+
+            if (*((char *) native_properties->properties[i].value) == '\0') {
+                boolValue = true;
+            } else if (!REDAString_strToBoolean(
+                    (char *) native_properties->properties[i].value,
+                    &boolValue)) {
+                throw dds::core::Error(
+                        "PyProcessorPlugin: invalid value for property name="
+                        + std::string((char *) native_properties->properties[i].value));
+            }
+            property_.autoreload(boolValue ? true : false);
         }
     }
 
@@ -514,6 +548,24 @@ PyProcessorPlugin::PyProcessorPlugin(
 
     load_module();
 }
+
+const PyProcessorPluginProperty& PyProcessorPlugin::property() const
+{
+    return property_;
+}
+
+
+void PyProcessorPlugin::reload()
+{
+
+    PyObject *new_module = PyImport_ReloadModule(py_user_module_.get());
+    if (new_module == NULL) {
+        PyErr_Print();
+        throw dds::core::Error("PyProcessorPlugin:reload error loading user module");
+    }
+    py_user_module_ = new_module;
+}
+
 
 PyProcessorPlugin::~PyProcessorPlugin()
 {
