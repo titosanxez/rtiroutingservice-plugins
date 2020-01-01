@@ -13,6 +13,9 @@
 #include "Python.h"
 
 #include <stack>
+#include <string>
+#include <memory>
+
 #include "dds/core/xtypes/StructType.hpp"
 #include "dds/core/xtypes/UnionType.hpp"
 #include "dds/core/xtypes/MemberType.hpp"
@@ -87,6 +90,54 @@ void DynamicDataConverter::from_native_primitive<std::string, const char*>(
     }
 }
 
+void DynamicDataConverter::from_wstring(
+        const dds::core::xtypes::DynamicData &data,
+        const rti::core::xtypes::DynamicDataMemberInfo& member_info)
+{
+    using rti::core::xtypes::LoanedDynamicData;
+
+    DDS_Wchar *wstring_value = NULL;
+    DDS_UnsignedLong wstring_size = 0;
+    if (DDS_DynamicData_get_wstring(
+            &(data.native()),
+            &wstring_value,
+            &wstring_size,
+            NULL,
+            member_info.member_index()) != DDS_RETCODE_OK) {
+        throw dds::core::Error(
+                    "DynamicDataConverter:"
+                    + std::string(RTI_FUNCTION_NAME)
+                    + "error reading member=" + member_info.member_name().to_std_string());
+    }
+    PyObject *py_wstring = PyBytes_FromStringAndSize(
+            (char *) wstring_value,
+            wstring_size * BYTES_PER_CHAR);
+    DDS_Wstring_free(wstring_value);
+    if (PyDict_Check(context_stack_.top())) {
+        if (PyDict_SetItemString(
+                context_stack_.top(),
+                member_info.member_name().c_str(),
+                py_wstring) != 0) {
+            PyErr_Print();
+            throw dds::core::Error(
+                    "DynamicDataConverter:"
+                    + std::string(RTI_FUNCTION_NAME)
+                    + "error member=" + member_info.member_name().to_std_string());
+        }
+    } else {
+        assert(PyList_Check(context_stack_.top()));
+        if (PyList_SetItem(
+                context_stack_.top(),
+                context_stack_.top().index,
+                py_wstring) != 0) {
+            PyErr_Print();
+            throw dds::core::Error(
+                    "DynamicDataConverter::build_dictionary: error element="
+                    + std::to_string(context_stack_.top().index));
+        }
+    }
+}
+
 void DynamicDataConverter::build_dictionary(
         dds::core::xtypes::DynamicData& data,
         const rti::core::xtypes::DynamicDataMemberInfo& member_info)
@@ -144,6 +195,12 @@ void DynamicDataConverter::build_dictionary(
     }
         break;
 
+    case TypeKind::WSTRING_TYPE:
+
+        from_wstring(data, member_info);
+
+        break;
+
     case TypeKind::SEQUENCE_TYPE:
     {
         PyObject *py_list = PyList_New(member_info.element_count());
@@ -181,11 +238,11 @@ void DynamicDataConverter::build_dictionary(
     case TypeKind::ARRAY_TYPE:
     {
 
-        const StructType struct_type = static_cast<const StructType &>(data.type());
+        const StructType& struct_type = static_cast<const StructType &>(data.type());
         std::vector<uint32_t> dimension_indexes;
         std::vector<uint32_t> dimensions;
         uint32_t dimension_count = 0;
-        dds::core::xtypes::DynamicType member_type =
+        const dds::core::xtypes::DynamicType& member_type =
                 struct_type.member(member_info.member_index() - 1).type();
 
         if (member_type.kind() == TypeKind::ARRAY_TYPE) {
@@ -407,43 +464,64 @@ void DynamicDataConverter::to_dynamic_data(
     DynamicDataConverter converter(py_dict, data);
 }
 
-void set_long(
+template <>
+void DynamicDataConverter::to_native_primitive<uint64_t>(
         dds::core::xtypes::DynamicData& data,
         const rti::core::xtypes::DynamicDataMemberInfo& member_info,
-        PyObject *py_value)
+        PyObject* py_value,
+        std::function<uint64_t(PyObject*) > as_primitve)
+
 {
-    uint64_t long_value = PyLong_AsUnsignedLongLong(py_value);
+    using dds::core::xtypes::TypeKind;
+
+    uint64_t primitive_value = as_primitve(py_value);
 
     switch (member_info.member_kind().underlying()) {
+
+    case TypeKind::CHAR_8_TYPE:
+        data.value<DDS_Char>(
+                member_info.member_index(),
+                (DDS_Char) primitive_value);
+        break;
+    case TypeKind::UINT_8_TYPE:
+        data.value<uint8_t>(
+                member_info.member_index(),
+                (uint8_t) primitive_value);
+        break;
+    case TypeKind::INT_16_TYPE:
+        data.value<int16_t>(
+                member_info.member_index(),
+                (int16_t) primitive_value);
+        break;
+    case TypeKind::UINT_16_TYPE:
+        data.value<uint16_t>(
+                member_info.member_index(),
+                (uint16_t) primitive_value);
+        break;
     case TypeKind::INT_32_TYPE:
     case TypeKind::ENUMERATION_TYPE:
         data.value<int32_t>(
                 member_info.member_index(),
-                (int32_t) long_value);
+                (int32_t) primitive_value);
+        break;
+    case TypeKind::UINT_32_TYPE:
+        data.value<uint32_t>(
+                member_info.member_index(),
+                (uint32_t) primitive_value);
         break;
 
     case TypeKind::INT_64_TYPE:
         data.value<int64_t>(
                 member_info.member_index(),
-                (int64_t) long_value);
+                (int64_t) primitive_value);
         break;
-    case TypeKind::UINT_16_TYPE:
-        data.value<uint16_t>(
-                member_info.member_index(),
-                (uint16_t) long_value);
-        break;
-    case TypeKind::UINT_32_TYPE:
-        data.value<uint32_t>(
-                member_info.member_index(),
-                (uint32_t) long_value);
-        break;
-
     case TypeKind::UINT_64_TYPE:
         data.value<uint64_t>(
                 member_info.member_index(),
-                long_value);
+                (uint64_t) primitive_value);
 
         break;
+
     default:
         throw dds::core::InvalidArgumentError(
                 "inconsistent input value for member id="
@@ -451,31 +529,100 @@ void set_long(
     }
 }
 
-void set_float(
+template <>
+void DynamicDataConverter::to_native_primitive<double>(
         dds::core::xtypes::DynamicData& data,
         const rti::core::xtypes::DynamicDataMemberInfo& member_info,
-        PyObject *py_value)
+        PyObject* py_value,
+        std::function<double(PyObject*) > as_primitve)
+
 {
-    double double_value = PyFloat_AsDouble(py_value);
+    using dds::core::xtypes::TypeKind;
+
+    double primitive_value = as_primitve(py_value);
 
     switch (member_info.member_kind().underlying()) {
+
     case TypeKind::FLOAT_32_TYPE:
         data.value<float_t>(
                 member_info.member_index(),
-                (float_t) double_value);
+                (float_t) primitive_value);
         break;
 
     case TypeKind::FLOAT_64_TYPE:
         data.value<double>(
                 member_info.member_index(),
-                (double) double_value);
+                (double) primitive_value);
         break;
+
     default:
         throw dds::core::InvalidArgumentError(
                 "inconsistent input value for member id="
                 + std::to_string(member_info.member_index()));
     }
 }
+
+
+template <>
+void DynamicDataConverter::to_native_primitive<char*>(
+        dds::core::xtypes::DynamicData& data,
+        const rti::core::xtypes::DynamicDataMemberInfo& member_info,
+        PyObject* py_value,
+        std::function<char*(PyObject*) > as_primitve)
+
+{
+    using dds::core::xtypes::TypeKind;
+
+    char* primitive_value = as_primitve(py_value);
+
+    switch (member_info.member_kind().underlying()) {
+
+    case TypeKind::STRING_TYPE:
+        data.value<std::string>(
+                member_info.member_index(),
+                primitive_value);
+        break;
+
+    default:
+        throw dds::core::InvalidArgumentError(
+                "inconsistent input value for member id="
+                + std::to_string(member_info.member_index()));
+    }
+}
+
+void DynamicDataConverter::to_native_wstring(
+        dds::core::xtypes::DynamicData& data,
+        const rti::core::xtypes::DynamicDataMemberInfo& member_info,
+        PyObject* py_value)
+
+{
+    assert(PyBytes_Check(py_value));
+
+     /* iterate wstring */
+    Py_ssize_t wstring_size = 0;
+    DDS_Wchar *wstring_value = NULL;
+    if (PyBytes_AsStringAndSize(
+            py_value,
+            (char **) &wstring_value,
+            &wstring_size) != 0) {
+        PyErr_Print();
+        throw dds::core::Error(
+                "set_wstring: error get wstring value from python object for member id="
+                + std::to_string(member_info.member_index()));
+    }
+
+    DDS_ReturnCode_t ret_code = DDS_DynamicData_set_wstring(
+            &(data.native()),
+            NULL,
+            member_info.member_index(),
+            wstring_value);
+    if (ret_code != DDS_RETCODE_OK) {
+        throw dds::core::Error(
+                "set_wstring: error setting wstring member id="
+                + std::to_string(member_info.member_index()));
+    }
+}
+
 
 void DynamicDataConverter::build_dynamic_data(
         dds::core::xtypes::DynamicData& data)
@@ -491,9 +638,7 @@ void DynamicDataConverter::build_dynamic_data(
     PyObjectGuard top = PySequence_Fast(
             (PyObject*) context_stack_.top(),
             "");
-    for (uint64_t i = 0;
-         i < PySequence_Fast_GET_SIZE(top.get());
-         i++) {
+    for (uint64_t i = 0; i < PySequence_Fast_GET_SIZE(top.get());  i++) {
         PyObject *entry = PySequence_Fast_GET_ITEM(top.get(), i);
         PyObject *value = NULL;
 
@@ -509,18 +654,20 @@ void DynamicDataConverter::build_dynamic_data(
             //member_id = data.member_info(member_name).member_index();
             const StructType struct_type =
                     static_cast<const StructType &>(data.type());
-            dds::core::xtypes::Member member = struct_type.member(member_name);
+            const dds::core::xtypes::Member& member =
+                    struct_type.member(member_name);
             aux_minfo.native().member_id = member.get_id() + 1;
             aux_minfo.native().member_name = member_name;
-            aux_minfo.native().member_kind = (DDS_TCKind)
-                    member.native()._representation._typeCode->_kind;
+            aux_minfo.native().member_kind =
+                    DDS_TypeCode_kind(&member.type().native(), NULL);
         } else {
             // if the top is a list, the entry is the value
             value = entry;
-            const CollectionType collection_type =
+            const CollectionType& collection_type =
                     static_cast<const CollectionType &>(data.type());
-            aux_minfo.native().member_kind = (DDS_TCKind)
-                    collection_type.content_type().native()._data._kind;
+            aux_minfo.native().member_kind = DDS_TypeCode_kind(
+                    &collection_type.content_type().native(),
+                    NULL);
             aux_minfo.native().member_id = context_stack_.top().index  + i + 1;
         }
 
@@ -530,6 +677,12 @@ void DynamicDataConverter::build_dynamic_data(
             context_stack_.push(value);
             build_dynamic_data(loaned_member);
             context_stack_.pop();
+        } else if (aux_minfo.member_kind() == TypeKind::WSTRING_TYPE
+                && PyBytes_Check(value)) {
+            /* this is a special case because we had to treat WSTRING as any array
+             * of int16 but in DynamicData this is not an array
+             */
+            to_native_wstring(data, aux_minfo, value);
         } else if (PyList_Check(value)) {
             bool top_is_list = PyList_Check(context_stack_.top());
             uint32_t index_offset = 0;
@@ -559,11 +712,23 @@ void DynamicDataConverter::build_dynamic_data(
 
             context_stack_.pop();
         } else if (PyLong_Check(value)) {
-            set_long(data, aux_minfo, value);
+            to_native_primitive<uint64_t>(
+                    data,
+                    aux_minfo,
+                    value,
+                    PyLong_AsUnsignedLongLong);
         } else if (PyFloat_Check(value)) {
-            set_float(data, aux_minfo, value);
+            to_native_primitive<double>(
+                    data,
+                    aux_minfo,
+                    value,
+                    PyFloat_AsDouble);
         } else if (PyUnicode_Check(value)) {
-            data.value<std::string>(aux_minfo.member_index(), PyUnicode_AsUTF8(value));
+            to_native_primitive<char*>(
+                    data,
+                    aux_minfo,
+                    value,
+                    PyUnicode_AsUTF8);
         }
 
     }

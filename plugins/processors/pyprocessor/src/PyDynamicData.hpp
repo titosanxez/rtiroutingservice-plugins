@@ -6,6 +6,8 @@
 #include <stack>
 
 #include "dds/core/xtypes/DynamicData.hpp"
+#include "dds/core/xtypes/DynamicType.hpp"
+#include "dds/core/xtypes/TypeKind.hpp"
 
 namespace rti { namespace routing { namespace py {
 
@@ -19,6 +21,8 @@ public:
     static void to_dynamic_data(
             dds::core::xtypes::DynamicData& data,
             PyObject *py_dict);
+
+   static const int64_t BYTES_PER_CHAR = sizeof (DDS_Wchar) / sizeof (DDS_Char);
 
 private:
     DynamicDataConverter(const dds::core::xtypes::DynamicData& data);
@@ -37,7 +41,7 @@ private:
         {
             return current;
 
-            
+
         }
 
     public:
@@ -80,17 +84,32 @@ private:
         }
     }
 
+    void from_wstring(
+            const dds::core::xtypes::DynamicData &data,
+            const rti::core::xtypes::DynamicDataMemberInfo& member_info);
+
     void build_dictionary(
             dds::core::xtypes::DynamicData& data,
             const rti::core::xtypes::DynamicDataMemberInfo& member_info);
     void build_dynamic_data(
             dds::core::xtypes::DynamicData& data);
 
+    template <typename T> static
+    void to_native_primitive(
+            dds::core::xtypes::DynamicData& data,
+            const rti::core::xtypes::DynamicDataMemberInfo& member_info,
+            PyObject *py_value,
+            std::function<T(PyObject*) > as_primitve);
+
+    static void to_native_wstring(
+            dds::core::xtypes::DynamicData& data,
+            const rti::core::xtypes::DynamicDataMemberInfo& member_info,
+            PyObject* py_value);
+
 private:
     std::stack<Context> context_stack_;
 
 };
-
 
 } } }
 

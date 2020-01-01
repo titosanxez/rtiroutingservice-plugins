@@ -134,10 +134,6 @@ void PyProcessor::forward_on_route_event(
         RTI_RoutingServiceRouteEvent *native_route_event,
         RTI_RoutingServiceEnvironment *environment)
 {
-//    if (PyErr_Occurred() != NULL) {
-//        return;
-//    }
-
     PyProcessor *forwarder =
             static_cast<PyProcessor*> (native_processor_data);
 
