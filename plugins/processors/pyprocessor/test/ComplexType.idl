@@ -17,6 +17,12 @@ struct SimpleStruct {
     sequence<InnerStructType, 2> inner_seq;
 };
 
+struct BaseStruct {
+    uint64 ui64;
+    uint64 other;
+    uint16 other_ui16_array[2];
+};
+
 union UnionType switch (long) {
     case 0:
     long case1;
@@ -30,7 +36,7 @@ union UnionType switch (long) {
 
 typedef long SimpleArray[4];
 
-struct ComplexType {
+struct ComplexType : BaseStruct{
   int32 array[4];
   int32 s_matrix[3][3];
   int32 h_matrix[2][3];
@@ -62,6 +68,6 @@ struct ComplexType {
   char c;
   float f;
   double d;
-  wstring wstrmember[20];
-
+  wstring wstrmember;
+  wstring wstr_array[20];
 };

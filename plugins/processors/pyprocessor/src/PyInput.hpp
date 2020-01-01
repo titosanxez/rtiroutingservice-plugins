@@ -23,14 +23,24 @@
 
 namespace rti { namespace routing { namespace py {
 
-class PySelector
+class PyInput;
+
+class PySelectorBuilder
 {
 public:
-    static void build(
-            RTI_RoutingServiceSelectorState& state,
-            PyObject *py_dict);
-
     const static RTI_RoutingServiceSelectorState& DEFAULT_STATE();
+
+
+    PySelectorBuilder(PyInput *input, PyObject *py_dict);
+    ~PySelectorBuilder();
+
+private:
+    void build(PyObject *py_dict);
+    void create_content_query();
+private:
+    friend class PyInput;
+    PyInput *input;
+    RTI_RoutingServiceSelectorState state;
 };
 
 class PyInputType
@@ -72,7 +82,7 @@ private:
 
 
 private:
-    friend class PySelector;
+    friend class PySelectorBuilder;
     RTI_RoutingServiceRoute *native_route_;
     RTI_RoutingServiceEnvironment *native_env_;
     PyObjectGuard info_;

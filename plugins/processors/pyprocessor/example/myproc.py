@@ -56,6 +56,13 @@ class MyProcessor(proc.Processor):
             samples = route.inputs[0].read(selector)
             print(samples[0].data)
             print(len(samples))
+
+            #with filter
+            selector=dict(filter=dict(expression='x < 50'))
+            samples = route.inputs[0].read(selector)
+            if len(samples) > 1:
+                print('with selector: ' + str(samples[0].data))
+
 #            samples[0].data = 0;
         except AttributeError as atterr:
             print(atterr)

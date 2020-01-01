@@ -237,7 +237,6 @@ void DynamicDataConverter::build_dictionary(
 
     case TypeKind::ARRAY_TYPE:
     {
-
         const StructType& struct_type = static_cast<const StructType &>(data.type());
         std::vector<uint32_t> dimension_indexes;
         std::vector<uint32_t> dimensions;
@@ -450,7 +449,7 @@ void DynamicDataConverter::build_dictionary(
                 + ". Skipping deserialization.";
         DDSLog_logWithFunctionName(
                 RTI_LOG_BIT_WARN,
-                "DynamicDataConverter::build",
+                "DynamicDataConverter::build_dictionary",
                 &RTI_LOG_ANY_s,
                 message.c_str());
     }
@@ -624,6 +623,31 @@ void DynamicDataConverter::to_native_wstring(
 }
 
 
+uint32_t find_member_id_and_type(
+        rti::core::xtypes::DynamicDataMemberInfo& info,
+        const StructType struct_type,
+        const std::string& member_name)
+{
+    uint32_t index = 0;
+    if (struct_type.has_parent()) {
+        index = find_member_id_and_type(info, struct_type.parent(), member_name);
+        if (index != dds::core::xtypes::StructType::INVALID_INDEX) {
+            return info.member_index();
+        }
+    }
+
+    for (int i = 0; i < struct_type.member_count(); i++) {
+        ++info.native().member_id;
+        if (struct_type.member(i).name() == member_name) {
+            info.native().member_kind =
+                    DDS_TypeCode_kind(&struct_type.member(i).type().native(), NULL);
+            return info.member_index();
+        }
+    }
+
+    return dds::core::xtypes::StructType::INVALID_INDEX;
+}
+
 void DynamicDataConverter::build_dynamic_data(
         dds::core::xtypes::DynamicData& data)
 {
@@ -642,6 +666,7 @@ void DynamicDataConverter::build_dynamic_data(
         PyObject *entry = PySequence_Fast_GET_ITEM(top.get(), i);
         PyObject *value = NULL;
 
+        aux_minfo.native().member_id = 0;
         // of top is a dict, the entry is the key
         if (PyDict_Check(context_stack_.top())) {
             value = PyDict_GetItem(context_stack_.top(), entry);
@@ -654,12 +679,8 @@ void DynamicDataConverter::build_dynamic_data(
             //member_id = data.member_info(member_name).member_index();
             const StructType struct_type =
                     static_cast<const StructType &>(data.type());
-            const dds::core::xtypes::Member& member =
-                    struct_type.member(member_name);
-            aux_minfo.native().member_id = member.get_id() + 1;
             aux_minfo.native().member_name = member_name;
-            aux_minfo.native().member_kind =
-                    DDS_TypeCode_kind(&member.type().native(), NULL);
+            find_member_id_and_type(aux_minfo, struct_type, member_name);
         } else {
             // if the top is a list, the entry is the value
             value = entry;

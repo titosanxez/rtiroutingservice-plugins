@@ -9,8 +9,32 @@
 
 namespace rti { namespace routing { namespace py {
 
+
+
+PySelectorBuilder::PySelectorBuilder(
+        PyInput* the_input,
+        PyObject *py_dict)
+        : input(the_input),
+          state(DEFAULT_STATE())
+
+{
+    build(py_dict);
+}
+
+PySelectorBuilder::~PySelectorBuilder()
+{
+    if (state.query_data != NULL) {
+        input->get()->delete_content_query(
+                input->get()->stream_reader_data,
+                state.query_data,
+                input->native_env_);
+        state.query_data = NULL;
+    }
+}
+
+
 const RTI_RoutingServiceSelectorState&
-PySelector::DEFAULT_STATE()
+PySelectorBuilder::DEFAULT_STATE()
 {
     static RTI_RoutingServiceSelectorState init_state =
             RTI_RoutingServiceSelectorState_INITIALIZER;
@@ -24,11 +48,20 @@ if(!Py ## TYPE ## _Check((OBJECT))) {\
             "element=" #MEMBER " is not a " #TYPE); \
 }
 
-void PySelector::build(
-        RTI_RoutingServiceSelectorState& state,
-        PyObject *py_dict)
+void PySelectorBuilder::create_content_query()
 {
+    if (state.content.expression != NULL) {
+        state.query_data = input->get()->create_content_query(
+                input->get()->stream_reader_data,
+                state.query_data,
+                &state.content,
+                input->native_env_);
+    }
+}
 
+
+void PySelectorBuilder::build(PyObject *py_dict)
+{
     PyObject *py_item;
 
     //sample_state
@@ -74,6 +107,20 @@ void PySelector::build(
         RTI_PY_CHECK_AND_THROW(Long, py_item, max_samples);
         state.sample_count_max = (int32_t) PyLong_AsLong(py_item);
     }
+
+    // filter
+    py_item = PyDict_GetItemString(py_dict, "filter");
+    if (py_item != NULL) {
+        RTI_PY_CHECK_AND_THROW(Dict, py_item, filter);
+        // expression
+        PyObject *py_exp = PyDict_GetItemString(py_item, "expression");
+        if (py_exp != NULL) {
+            RTI_PY_CHECK_AND_THROW(Unicode, py_exp, expression);
+            state.content.expression = PyUnicode_AsUTF8(py_exp);
+        }
+        create_content_query();
+    }
+
 }
 
 /*
@@ -216,20 +263,18 @@ PyObject* PyInput::read_or_take_w_selector(
                     &native_samples.sample_array_,
                     &native_samples.info_array_,
                     &native_samples.length_,
-                    &(PySelector::DEFAULT_STATE()),
+                    &(PySelectorBuilder::DEFAULT_STATE()),
                     self->native_env_);
         } else {
-            RTI_RoutingServiceSelectorState selector_state =
-                    PySelector::DEFAULT_STATE();
-
-            PySelector::build(selector_state, py_dict);
+            PySelectorBuilder selector_builder(self, py_dict);
+            RTI_ROUTING_THROW_ON_ENV_ERROR(self->native_env_);
 
             read_or_take_w_selector(
                     self->get()->stream_reader_data,
                     &native_samples.sample_array_,
                     &native_samples.info_array_,
                     &native_samples.length_,
-                    &selector_state,
+                    &selector_builder.state,
                     self->native_env_);
         }
         RTI_ROUTING_THROW_ON_ENV_ERROR(self->native_env_);
