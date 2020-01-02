@@ -237,32 +237,20 @@ void DynamicDataConverter::build_dictionary(
 
     case TypeKind::ARRAY_TYPE:
     {
-        const StructType& struct_type = static_cast<const StructType &>(data.type());
         std::vector<uint32_t> dimension_indexes;
         std::vector<uint32_t> dimensions;
         uint32_t dimension_count = 0;
-        const dds::core::xtypes::DynamicType& member_type =
-                struct_type.member(member_info.member_index() - 1).type();
-
-        if (member_type.kind() == TypeKind::ARRAY_TYPE) {
-            const ArrayType& array_type =
-                    static_cast<const ArrayType &>(member_type);
-            dimension_count = array_type.dimension_count();
-            dimension_indexes.resize(dimension_count);
-            dimensions.resize(dimension_count);
-            for (uint32_t j = 0; j < dimension_count; j++) {
-                dimensions[j] = array_type.dimension(j);
-            }
-        } else {
-            // bug in dynamic type
-            dimension_count = 1;
-            dimension_indexes.resize(1);
-            dimensions.resize(1);
-            dimensions[0] = member_info.element_count();
+        LoanedDynamicData loaned_array =
+                data.loan_value(member_info.member_index());
+        const ArrayType& array_type =
+                static_cast<const ArrayType &> (loaned_array.get().type());
+        dimension_count = array_type.dimension_count();
+        dimension_indexes.resize(dimension_count);
+        dimensions.resize(dimension_count);
+        for (uint32_t j = 0; j < dimension_count; j++) {
+            dimensions[j] = array_type.dimension(j);
         }
 
-        LoanedDynamicData loaned_array =
-                data.loan_value(member_info.member_name());
         uint32_t element_count = 0;
         while (element_count < member_info.element_count()) {
             for (uint32_t j = 0; j < dimension_count; j++) {
@@ -625,7 +613,7 @@ void DynamicDataConverter::to_native_wstring(
 
 uint32_t find_member_id_and_type(
         rti::core::xtypes::DynamicDataMemberInfo& info,
-        const StructType struct_type,
+        const StructType& struct_type,
         const std::string& member_name)
 {
     uint32_t index = 0;
