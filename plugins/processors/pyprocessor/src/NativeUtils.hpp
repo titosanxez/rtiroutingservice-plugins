@@ -60,9 +60,15 @@ private:
     PyObject *object_;
 };
 
-template <typename T, typename PYOBJECT>
-struct PyAllocatorGeneric : public PYOBJECT
+template <typename T, typename TClass>
+struct PyAllocatorGeneric : public PyObject
 {
+    PyAllocatorGeneric()
+    {
+        PyObject_Init(this, T::type());
+        //T::type()->tp_init(this, NULL, NULL);
+    }
+
     void* operator new(size_t size)
     {
         return T::type()->tp_alloc(T::type(), size);
@@ -75,27 +81,19 @@ struct PyAllocatorGeneric : public PYOBJECT
 
     static void delete_object(PyObject *object)
     {
-        Py_TYPE(object)->tp_free((PyObject *) object);
+        delete static_cast<TClass*>(object);
     }
 
 };
 
-template <typename T>
-struct PyAllocator : public PyAllocatorGeneric<T, PyObject>
-{
-};
 
-template <typename T>
-struct  PyNativeWrapper : public PyAllocator<T>
+template <typename T, typename TClass>
+struct  PyNativeWrapper : public PyAllocatorGeneric<T, TClass>
 {
 public:
 
     PyNativeWrapper(typename T::native_type* native)
         : native_(native)
-    {
-    }
-
-    ~PyNativeWrapper()
     {
     }
 
@@ -114,22 +112,28 @@ protected:
  * --- conversion utilities ---------------------------------------------------
  */
 #define RTI_PY_ADD_DICT_ITEM_MEMBER(DICT, OBJECT, MEMBER, CONV) \
+{\
+    PyObjectGuard py_value = (CONV)((OBJECT).MEMBER); \
     if (PyDict_SetItemString(\
             (DICT), \
             #MEMBER, \
-            (CONV)((OBJECT).MEMBER)) == -1) {\
+            py_value.get()) == -1) {\
         PyErr_Print();\
         throw dds::core::Error("from_native: error setting member="#MEMBER);\
-    }
+    }\
+}
 
 #define RTI_PY_ADD_DICT_ITEM_VALUE(DICT, MEMBER, CONV) \
+{\
+    PyObjectGuard py_value = (CONV)(MEMBER);\
     if (PyDict_SetItemString(\
             (DICT), \
             #MEMBER, \
-            (CONV)(MEMBER)) == -1) {\
+            py_value.get()) == -1) {\
         PyErr_Print();\
         throw dds::core::Error("from_native: error setting member="#MEMBER);\
-    }
+    }\
+}
 
 template <typename T, typename U>
 PyObject* from_native_array(

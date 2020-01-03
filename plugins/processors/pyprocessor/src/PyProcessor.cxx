@@ -54,7 +54,7 @@ const char *PyProcessor_METHOD_NAMES[] = {
 };
 
 PyProcessor::PyProcessor(
-         PyProcessorPlugin *plugin,
+        PyProcessorPlugin *plugin,
         PyObject *py_processor,
         PyRoute *py_route)
         : plugin_(plugin),
@@ -67,12 +67,12 @@ PyProcessor::PyProcessor(
             static_cast<void*> (this);
     native_.on_route_event =
             PyProcessor::forward_on_route_event;
-    Py_INCREF(py_processor);
 }
 
 PyProcessor::~PyProcessor()
 {
     Py_DECREF(py_processor_);
+    delete py_route_;
 }
 
 RTI_RoutingServiceProcessor *
@@ -333,7 +333,8 @@ PyProcessorPluginProperty::PyProcessorPluginProperty(
         const std::string& class_name,
         const std::string& module_name = "")
         : class_name_(class_name),
-        module_(module_name)
+        module_(module_name),
+        module_autoreload_(false)
 {
 
 }

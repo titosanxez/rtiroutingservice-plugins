@@ -23,7 +23,7 @@ class PyInputAccessorType {
     static const std::string& name();
 };
 
-class PyInputAccessor : public PyAllocatorGeneric<PyInputAccessorType, PyObject> {
+class PyInputAccessor : public PyAllocatorGeneric<PyInputAccessorType, PyInputAccessor> {
 public:
     PyInputAccessor(PyRoute *py_route);
 
@@ -53,7 +53,7 @@ class PyOutputAccessorType {
     static const std::string& name();
 };
 
-class PyOutputAccessor : public PyAllocatorGeneric<PyOutputAccessorType, PyObject> {
+class PyOutputAccessor : public PyAllocatorGeneric<PyOutputAccessorType, PyOutputAccessor> {
 public:
     PyOutputAccessor(PyRoute *py_route);
 
@@ -83,10 +83,11 @@ public:
     static const std::string& name();
 };
 
-class PyRoute : public PyNativeWrapper<PyRouteType>
+class PyRoute : public PyNativeWrapper<PyRouteType, PyRoute>
 {
 public:
     PyRoute(RTI_RoutingServiceRoute *native);
+    ~PyRoute();
     PyInput* input(RTI_RoutingServiceStreamReaderExt *native_input);
     PyInput* input(int32_t index);
     PyInput* input(const char *name);

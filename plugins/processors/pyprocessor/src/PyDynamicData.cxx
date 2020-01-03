@@ -49,7 +49,7 @@ DynamicDataConverter::DynamicDataConverter(const dds::core::xtypes::DynamicData&
     }
 }
 
-PyObject* DynamicDataConverter::to_dictionary(
+PyObject* DynamicDataConverter::from_dynamic_data(
         const dds::core::xtypes::DynamicData& data)
 {
     DynamicDataConverter converter(data);
@@ -65,11 +65,12 @@ void DynamicDataConverter::from_native_primitive<std::string, const char*>(
 {
 
     std::string value = data.value<std::string>(member_info.member_index());
+    PyObjectGuard py_value = to_python_object(value.c_str());
     if (PyDict_Check(context_stack_.top())) {
         if (PyDict_SetItemString(
                 context_stack_.top(),
                 member_info.member_name().c_str(),
-                to_python_object(value.c_str())) != 0) {
+                py_value.get()) != 0) {
             PyErr_Print();
             throw dds::core::Error(
                     "DynamicDataConverter:"
@@ -81,12 +82,13 @@ void DynamicDataConverter::from_native_primitive<std::string, const char*>(
         if (PyList_SetItem(
                 context_stack_.top(),
                 context_stack_.top().index,
-                to_python_object(value.c_str())) != 0) {
+                py_value.get()) != 0) {
             PyErr_Print();
             throw dds::core::Error(
                     "DynamicDataConverter::build_dictionary: error element="
                     + std::to_string(context_stack_.top().index));
         }
+        py_value.release();
     }
 }
 
@@ -109,7 +111,7 @@ void DynamicDataConverter::from_wstring(
                     + std::string(RTI_FUNCTION_NAME)
                     + "error reading member=" + member_info.member_name().to_std_string());
     }
-    PyObject *py_wstring = PyBytes_FromStringAndSize(
+    PyObjectGuard py_wstring = PyBytes_FromStringAndSize(
             (char *) wstring_value,
             wstring_size * BYTES_PER_CHAR);
     DDS_Wstring_free(wstring_value);
@@ -117,7 +119,7 @@ void DynamicDataConverter::from_wstring(
         if (PyDict_SetItemString(
                 context_stack_.top(),
                 member_info.member_name().c_str(),
-                py_wstring) != 0) {
+                py_wstring.get()) != 0) {
             PyErr_Print();
             throw dds::core::Error(
                     "DynamicDataConverter:"
@@ -129,12 +131,13 @@ void DynamicDataConverter::from_wstring(
         if (PyList_SetItem(
                 context_stack_.top(),
                 context_stack_.top().index,
-                py_wstring) != 0) {
+                py_wstring.get()) != 0) {
             PyErr_Print();
             throw dds::core::Error(
                     "DynamicDataConverter::build_dictionary: error element="
                     + std::to_string(context_stack_.top().index));
         }
+        py_wstring.release();
     }
 }
 
@@ -149,6 +152,7 @@ void DynamicDataConverter::build_dictionary(
     case TypeKind::STRUCTURE_TYPE:
     {
         PyObject *py_dict = PyDict_New();
+        PyObjectGuard py_guard = py_dict;
         if (py_dict == NULL) {
             PyErr_Print();
             throw dds::core::Error(
@@ -178,6 +182,7 @@ void DynamicDataConverter::build_dictionary(
                         + member_info.member_name().to_std_string()
                         + " at index=" + std::to_string(context_stack_.top().index));
             }
+            py_guard.release();
         }
 
 
@@ -203,8 +208,8 @@ void DynamicDataConverter::build_dictionary(
 
     case TypeKind::SEQUENCE_TYPE:
     {
-        PyObject *py_list = PyList_New(member_info.element_count());
-        if (py_list == NULL) {
+        PyObjectGuard py_list = PyList_New(member_info.element_count());
+        if (py_list.get() == NULL) {
             PyErr_Print();
             throw dds::core::Error(
                     "DynamicDataConverter::build_dictionary: error creating list");
@@ -212,7 +217,7 @@ void DynamicDataConverter::build_dictionary(
         if (PyDict_SetItemString(
                 context_stack_.top(),
                 member_info.member_name().c_str(),
-                py_list) != 0) {
+                py_list.get()) != 0) {
             PyErr_Print();
             throw dds::core::Error(
                     "DynamicDataConverter::build_dictionary: error member="
@@ -220,7 +225,7 @@ void DynamicDataConverter::build_dictionary(
                     + " of type=sequence");
         }
 
-        context_stack_.push(py_list);
+        context_stack_.push(py_list.get());
 
         LoanedDynamicData loaned_array =
                 data.loan_value(member_info.member_name());
@@ -262,6 +267,7 @@ void DynamicDataConverter::build_dictionary(
 
                 if (dimension_indexes[j] == 0) {
                     PyObject *py_list = PyList_New(dimensions[j]);
+                    PyObjectGuard py_guard = py_list;
                     if (py_list == NULL) {
                         PyErr_Print();
                         throw dds::core::Error(
@@ -290,6 +296,7 @@ void DynamicDataConverter::build_dictionary(
                                     + member_info.member_name().to_std_string()
                                     + " at index=" + std::to_string(context_stack_.top().index));
                         }
+                        py_guard.release();
                     }
                     context_stack_.push(py_list);
                 }
@@ -664,11 +671,23 @@ void DynamicDataConverter::build_dynamic_data(
                 throw dds::core::Error(
                         "DynamicDataConverter::build_dynamic_data: key is not a member name");
             }
-            //member_id = data.member_info(member_name).member_index();
             const StructType struct_type =
                     static_cast<const StructType &>(data.type());
             aux_minfo.native().member_name = member_name;
-            find_member_id_and_type(aux_minfo, struct_type, member_name);
+            if (find_member_id_and_type(aux_minfo, struct_type, member_name)
+                    == dds::core::xtypes::StructType::INVALID_INDEX) {
+                std::string message =
+                        "member="
+                        + std::string(member_name)
+                        + " not present in output type="
+                        + struct_type.name();
+                DDSLog_logWithFunctionName(
+                        RTI_LOG_BIT_WARN,
+                        "DynamicDataConverter::build_dictionary",
+                        &RTI_LOG_ANY_s,
+                        message.c_str());
+                continue;
+            }
         } else {
             // if the top is a list, the entry is the value
             value = entry;

@@ -90,7 +90,7 @@ static PyTypeObject PyOutput_g_type = {
     .tp_basicsize = sizeof(PyOutput),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyNativeWrapper<PyOutputType>::delete_object,
+    .tp_dealloc = PyNativeWrapper<PyOutputType, PyOutput>::delete_object,
     .tp_methods = PyOutput_g_methods,
     .tp_getset = PyOutput_g_getsetters
 };

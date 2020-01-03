@@ -8,6 +8,7 @@
 #include "dds/core/xtypes/DynamicData.hpp"
 #include "dds/core/xtypes/DynamicType.hpp"
 #include "dds/core/xtypes/TypeKind.hpp"
+#include "NativeUtils.hpp"
 
 namespace rti { namespace routing { namespace py {
 
@@ -15,7 +16,7 @@ namespace rti { namespace routing { namespace py {
 class DynamicDataConverter {
 
 public:
-    static PyObject * to_dictionary(
+    static PyObject * from_dynamic_data(
             const dds::core::xtypes::DynamicData& data);
 
     static void to_dynamic_data(
@@ -59,11 +60,12 @@ private:
             std::function<PyObject*(U)> to_python_object)
     {
         T value = data.value<T>(member_info.member_index());
+        PyObjectGuard py_value = to_python_object(static_cast<U> (value));
         if (PyDict_Check(context_stack_.top())) {
             if (PyDict_SetItemString(
                     context_stack_.top(),
                     member_info.member_name().c_str(),
-                    to_python_object(static_cast<U> (value))) != 0) {
+                    py_value.get()) != 0) {
                 PyErr_Print();
                 throw dds::core::Error(
                         "DynamicDataConverter:"
@@ -75,12 +77,13 @@ private:
             if (PyList_SetItem(
                     context_stack_.top(),
                     context_stack_.top().index,
-                    to_python_object(static_cast<U> (value))) != 0) {
+                    py_value.get()) != 0) {
                 PyErr_Print();
                 throw dds::core::Error(
                         "DynamicDataConverter::build_dictionary: error element="
                         + std::to_string(context_stack_.top().index));
             }
+            py_value.release();
         }
     }
 

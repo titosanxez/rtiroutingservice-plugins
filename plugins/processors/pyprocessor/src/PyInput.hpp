@@ -51,7 +51,7 @@ public:
     static const std::string& name();
 };
 
-class PyInput : public PyNativeWrapper<PyInputType>
+class PyInput : public PyNativeWrapper<PyInputType, PyInput>
 {
 public:
     typedef RTI_RoutingServiceStreamReaderExt native_type;

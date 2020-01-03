@@ -48,7 +48,7 @@ PyObject* PySample::build_data(
         return PyDict_New();
     }
 
-    return DynamicDataConverter::to_dictionary(*data);
+    return DynamicDataConverter::from_dynamic_data(*data);
 }
 
 
@@ -59,17 +59,16 @@ PySample::PySample(
 {
 }
 
-void * PySample::operator new(size_t size)
+PySample::~PySample()
 {
-    return PySampleType::type()->tp_alloc(
-            PySampleType::type(),
-            size);
+    if (data_ != NULL) {
+        Py_DECREF(data_);
+    }
+    if (info_ != NULL) {
+        Py_DECREF(info_);
+    }
 }
 
-void PySample::operator delete(void* object)
-{
-    Py_TYPE(object)->tp_free((PyObject *) object);
-}
 
 static PyGetSetDef PySample_g_getsetters[] = {
     {
@@ -101,6 +100,7 @@ static PyTypeObject PySample_g_type = {
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = NULL,
+    .tp_dealloc = PyAllocatorGeneric<PySampleType, PySample>::delete_object,
     .tp_methods = PySample_g_methods,
     .tp_getset = PySample_g_getsetters
 };

@@ -33,13 +33,12 @@ public:
     static const std::string& name();
 };
 
-class PySample : public PyObject {
+class PySample : public PyAllocatorGeneric<PySampleType, PySample> {
 public:
     typedef dds::core::xtypes::DynamicData native_data;
     typedef dds::sub::SampleInfo native_info;
     PySample(const native_data* data, const native_info *info);
-    void* operator new(size_t size);
-    void operator delete(void* object);
+    ~PySample();
 
     /* python methods */
     static PyObject* data(PySample *self, void* closure);

@@ -30,7 +30,7 @@ public:
     static const std::string& name();
 };
 
-class PyOutput : public PyNativeWrapper<PyOutputType>
+class PyOutput : public PyNativeWrapper<PyOutputType, PyOutput>
 {
 public:
     typedef RTI_RoutingServiceStreamWriterExt native_type;

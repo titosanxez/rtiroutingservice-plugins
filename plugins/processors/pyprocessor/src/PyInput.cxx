@@ -184,7 +184,7 @@ static PyTypeObject PyInput_g_type = {
     .tp_basicsize = sizeof(PyInput),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyNativeWrapper<PyInputType>::delete_object,
+    .tp_dealloc = PyNativeWrapper<PyInputType, PyInput>::delete_object,
     .tp_methods = PyInput_g_methods,
     .tp_getset = PyInput_g_getsetters
 };
@@ -291,7 +291,8 @@ PyObject* PyInput::read_or_take_w_selector(
             native_samples.length_,
             self->native_env_);
     if (RTI_RoutingServiceEnvironment_error_occurred(self->native_env_)) {
-        PyErr_Format(PyExc_RuntimeError,
+        PyErr_Format(
+                PyExc_RuntimeError,
                 "%s",
                 RTI_RoutingServiceEnvironment_get_error_message(self->native_env_));
         delete py_samples;

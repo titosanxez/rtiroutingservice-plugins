@@ -24,7 +24,9 @@ namespace rti { namespace routing { namespace py {
  * --- PyInputAccessor --------------------------------------------------------
  */
 PyInputAccessor::PyInputAccessor(PyRoute* py_route)
-        : py_route_(py_route),
+        :
+        PyAllocatorGeneric(),
+        py_route_(py_route),
         count_(RTI_RoutingServiceRoute_get_input_count(py_route->get())),
         iterator_(0)
 {
@@ -46,7 +48,7 @@ PyObject* PyInputAccessor::binary(
         py_input = self->py_route_->input(PyUnicode_AsUTF8(key));
     } else {
         PyErr_SetString(
-                PyExc_KeyError,
+                PyExc_TypeError,
                 "PyInputAccessor::binary: key must be an string representing an input name "
                 "or an integer representing an input index");
         return NULL;
@@ -68,6 +70,7 @@ PyObject* PyInputAccessor::get_iterator(PyInputAccessor *self)
 PyObject* PyInputAccessor::iterator_next(PyInputAccessor *self)
 {
     if (self->iterator_ == self->count_) {
+        PyErr_Format(PyExc_StopIteration, "%i", self->count_);
         return NULL;
     }
     PyObject *py_input = (PyObject *) self->py_route_->input(self->iterator_);
@@ -90,7 +93,7 @@ static PyTypeObject PyInputAccessor_g_type = {
     .tp_basicsize = sizeof(PyInputAccessor),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyAllocatorGeneric<PyInputAccessorType, PyObject>::delete_object,
+    .tp_dealloc = PyAllocatorGeneric<PyInputAccessorType, PyInputAccessor>::delete_object,
     .tp_as_mapping = &PyInputAccessor_g_mapping,
     .tp_iter = (getiterfunc)  PyInputAccessor::get_iterator,
     .tp_iternext = (iternextfunc) PyInputAccessor::iterator_next
@@ -113,7 +116,8 @@ const std::string& PyInputAccessorType::name()
  * --- PyOutputAccessor --------------------------------------------------------
  */
 PyOutputAccessor::PyOutputAccessor(PyRoute* py_route)
-        : py_route_(py_route),
+        : PyAllocatorGeneric(),
+        py_route_(py_route),
         count_(RTI_RoutingServiceRoute_get_output_count(py_route->get())),
         iterator_(0)
 {
@@ -135,7 +139,7 @@ PyObject* PyOutputAccessor::binary(
         py_output = self->py_route_->output(PyUnicode_AsUTF8(key));
     } else {
         PyErr_SetString(
-                PyExc_KeyError,
+                PyExc_ValueError,
                 "PyOutputAccessor::binary: key must be an string representing an output name "
                 "or an integer representing an output index");
         return NULL;
@@ -157,6 +161,7 @@ PyObject* PyOutputAccessor::get_iterator(PyOutputAccessor *self)
 PyObject* PyOutputAccessor::iterator_next(PyOutputAccessor *self)
 {
     if (self->iterator_ == self->count_) {
+        PyErr_Format(PyExc_StopIteration, "%i", self->count_);
         return NULL;
     }
     PyObject *py_output = (PyObject *) self->py_route_->output(self->iterator_);
@@ -179,7 +184,7 @@ static PyTypeObject PyOutputAccessor_g_type = {
     .tp_basicsize = sizeof(PyOutputAccessor),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyAllocatorGeneric<PyOutputAccessorType, PyObject>::delete_object,
+    .tp_dealloc = PyAllocatorGeneric<PyOutputAccessorType, PyOutputAccessor>::delete_object,
     .tp_as_mapping = &PyOutputAccessor_g_mapping,
     .tp_iter = (getiterfunc)  PyOutputAccessor::get_iterator,
     .tp_iternext = (iternextfunc) PyOutputAccessor::iterator_next
@@ -202,34 +207,6 @@ const std::string& PyOutputAccessorType::name()
  * --- PyRoute Python methods -------------------------------------------------
  */
 
-//PyObject* PyRoute::inputs(PyRoute *self, PyObject *args)
-//{
-//    PyObject *value = NULL;
-//
-//    if (!PyArg_ParseTuple(args, "O", &value)) {
-//        return NULL;
-//    }
-//
-//    PyInput *py_input = NULL;
-//    try {
-//        if (PyLong_Check(value)) {
-//            py_input = self->input(PyLong_AsLong(value));
-//        } else if (PyUnicode_Check(value)) {
-//            py_input = self->input(PyUnicode_AsUTF8(value));
-//        } else {
-//            throw dds::core::InvalidArgumentError("inputs: invalid argument type");
-//        }
-//    } catch (const std::exception &ex) {
-//        PyErr_Format(PyExc_IndexError, "%s", ex.what());
-//        return NULL;
-//    }
-//
-//     if (py_input != Py_None) {
-//        Py_INCREF(py_input);
-//    }
-//    return py_input;
-//}
-
 Py_ssize_t PyRoute::port_count(PyRoute *self)
 {
     return RTI_RoutingServiceRoute_get_input_count(self->get())
@@ -241,7 +218,7 @@ PyObject* PyRoute::binary(PyRoute *self, PyObject *key)
 {
     if (!PyUnicode_Check(key)) {
         PyErr_SetString(
-                PyExc_KeyError,
+                PyExc_ValueError,
                 "PyRoute::binary: key must be an string represent an input or output name");
         return NULL;
     }
@@ -295,12 +272,6 @@ static PyGetSetDef PyRoute_getsetters[] = {
 };
 
 static PyMethodDef PyRoute_g_methods[] = {
-//    {
-//        "outputs",
-//        (PyCFunction) PyRoute::outputs,
-//        METH_VARARGS,
-//        "returns the output at the specified index"
-//    },
     {NULL}  /* Sentinel */
 };
 
@@ -318,7 +289,7 @@ static PyTypeObject PyRoute_g_type = {
     .tp_basicsize = sizeof(PyRoute),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyNativeWrapper<PyRouteType>::delete_object,
+    .tp_dealloc = PyAllocatorGeneric<PyRouteType, PyRoute>::delete_object,
     .tp_methods = PyRoute_g_methods,
     .tp_getset = PyRoute_getsetters,
     .tp_as_mapping = &PyRoute_g_mapping
@@ -336,6 +307,13 @@ PyRoute::PyRoute(RTI_RoutingServiceRoute *native_route)
         output_accessor_(new PyOutputAccessor(this))
 {
 }
+
+PyRoute::~PyRoute()
+{
+    Py_DECREF(input_accessor_);
+    Py_DECREF(output_accessor_);
+}
+
 
 PyInput* PyRoute::input(int32_t index)
 {

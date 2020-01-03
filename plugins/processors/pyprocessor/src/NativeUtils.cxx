@@ -84,10 +84,11 @@ PyObject* from_native(const DDS_InstanceHandle_t& handle)
         PyErr_Print();
         throw dds::core::Error("from_native: error creating Python dictionary");
     }
+    PyObjectGuard py_value = PyLong_FromLong(handle.isValid);
     if (PyDict_SetItemString(
             py_dict.get(),
             "valid",
-            PyLong_FromLong(handle.isValid)) == -1) {
+            py_value.get()) == -1) {
         PyErr_Print();
         throw dds::core::Error("from_native: error setting valid element");
     }
@@ -117,17 +118,19 @@ PyObject* from_native(const DDS_SequenceNumber_t& sn)
         PyErr_Print();
         throw dds::core::Error("from_native: error creating Python dictionary");
     }
+    PyObjectGuard py_low = PyLong_FromUnsignedLong(sn.low);
     if (PyDict_SetItemString(
             py_dict.get(),
             "low",
-            PyLong_FromUnsignedLong(sn.low)) == -1) {
+            py_low.get()) == -1) {
         PyErr_Print();
         throw dds::core::Error("from_native: error setting 'low' element");
     }
+    PyObjectGuard py_high = PyLong_FromLong(sn.high);
     if (PyDict_SetItemString(
             py_dict.get(),
             "high",
-            PyLong_FromLong(sn.high)) == -1) {
+            py_high.get()) == -1) {
         PyErr_Print();
         throw dds::core::Error("from_native: error setting 'high' element");
     }
@@ -161,7 +164,6 @@ PyObject* from_native(
         PyErr_Print();
         throw dds::core::Error("from_native: error setting 'writer_guid' element");
     }
-    py_list.release();
 
     PyObjectGuard py_sn = from_native(identity.sequence_number);
     if (PyDict_SetItemString(
@@ -171,7 +173,6 @@ PyObject* from_native(
         PyErr_Print();
         throw dds::core::Error("from_native: error setting 'sequence_number' element");
     }
-    py_sn.release();
 
     return py_dict.release();
 }
@@ -199,17 +200,19 @@ PyObject* from_native(const DDS_Time_t& time)
         PyErr_Print();
         throw dds::core::Error("from_native: error creating Python dictionary");
     }
+    PyObjectGuard py_sec = PyLong_FromLong(time.sec);
     if (PyDict_SetItemString(
             py_dict.get(),
             "low",
-            PyLong_FromLong(time.sec)) == -1) {
+            py_sec.get()) == -1) {
         PyErr_Print();
         throw dds::core::Error("from_native: error setting 'sec' element");
     }
+    PyObjectGuard py_nanos = PyLong_FromUnsignedLong(time.nanosec);
     if (PyDict_SetItemString(
             py_dict.get(),
             "high",
-            PyLong_FromUnsignedLong(time.nanosec)) == -1) {
+            py_nanos.get()) == -1) {
         PyErr_Print();
         throw dds::core::Error("from_native: error setting 'nanosec' element");
     }
@@ -438,8 +441,8 @@ PyObject* from_native(const DDS_SampleInfo& info)
     PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, related_original_publication_virtual_guid);
     PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, reception_sequence_number);
     PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, publication_sequence_number);
-    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, reception_timestamp);
-    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, source_timestamp);
+    //PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, reception_timestamp);
+    //PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, source_timestamp);
 
     return py_dict.release();
 }
