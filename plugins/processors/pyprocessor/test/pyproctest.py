@@ -85,6 +85,8 @@ class TestProcessor(proc.Processor):
 
     def on_run(self, route):
         self.event_counts[inspect.currentframe().f_code.co_name] += 1
+        check_ports(route, route.inputs)
+        check_ports(route, route.outputs)
 
 
     def on_data_available(self, route):
@@ -95,18 +97,6 @@ class TestProcessor(proc.Processor):
             pprint.PrettyPrinter(indent=4).pprint(sample.data)
             json.dumps(sample.data)
 
-#        try:
-#            print('on_data_available')
-#            samples = route.inputs['Square'].read();
-#            for sample in samples:
-#                pprint.PrettyPrinter(indent=4).pprint(sample.data)
-#                #print(json.dumps(sample.data))
-#                route.outputs['Triangle'].write(sample.data)
-#        except AttributeError as atterr:
-#            print(atterr)
-#        except TypeError as typerr:
-#            print(typerr)
-
     def on_periodic_action(self, route):
         self.event_counts[inspect.currentframe().f_code.co_name] += 1
         print('TestProcessor::on_periodic_action')
@@ -116,6 +106,8 @@ class TestProcessor(proc.Processor):
     def on_pause(self, route):
         self.event_counts[inspect.currentframe().f_code.co_name] += 1
         print('TestProcessor::on_pause')
+        check_ports(route, route.inputs)
+        check_ports(route, route.outputs)
 
     def on_stop(self, route):
         self.event_counts[inspect.currentframe().f_code.co_name] += 1
@@ -127,13 +119,25 @@ class TestProcessor(proc.Processor):
         self.event_counts[inspect.currentframe().f_code.co_name] += 1
         print('TestProcessor::on_input_disabled:' + str(input.info))
         assert port_info_map[input.info['name']] == input.info
+        check_empty_port_iterator(route.inputs)
+        check_empty_port_iterator(route.outputs)
+        assert input == route[input.info['name']]
 
-    def on_output_disabled(self, route, input):
+    def on_output_disabled(self, route, output):
         self.event_counts[inspect.currentframe().f_code.co_name] += 1
-        print('TestProcessor::on_output_disabled:' + str(input.info))
-        assert port_info_map[input.info['name']] == input.info
+        print('TestProcessor::on_output_disabled:' + str(output.info))
+        assert port_info_map[output.info['name']] == output.info
+        check_empty_port_iterator(route.inputs)
+        check_empty_port_iterator(route.outputs)
+        assert output == route[output.info['name']]
 
 
+def find_port(stream_ports, name):
+    for port in stream_ports:
+        if port_info_map[name] == port.info['name']:
+            return port
+        else:
+            return None
 
 
 def check_empty_port_iterator(stream_ports):
