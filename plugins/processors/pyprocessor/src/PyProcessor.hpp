@@ -53,6 +53,7 @@ private:
     bool module_autoreload_;
 };
 
+class PyProcessor;
 class PyProcessorPlugin {
 
 public:
@@ -102,6 +103,7 @@ private:
     void load_module();
     PyObject* find_pyproc_type(const std::string& name);
 private:
+    friend class PyProcessor;
     PyProcessorPluginProperty property_;
     /* user module */
     PyObjectGuard py_user_module_;
@@ -112,7 +114,7 @@ private:
     /*
      * @brief Reference to the create_processor function
      */
-    PyObject *create_processor_;
+    PyObject *processor_class_;
     /* indicates whether module is reloading before each event */
     bool autoreload_;
 };

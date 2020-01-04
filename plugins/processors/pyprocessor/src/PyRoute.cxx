@@ -23,11 +23,11 @@ namespace rti { namespace routing { namespace py {
 /*
  * --- PyInputAccessor --------------------------------------------------------
  */
-PyInputAccessor::PyInputAccessor(PyRoute* py_route)
+PyInputAccessor::PyInputAccessor(PyRoute* py_route, int32_t count = 0)
         :
         PyAllocatorGeneric(),
         py_route_(py_route),
-        count_(RTI_RoutingServiceRoute_get_input_count(py_route->get())),
+        count_(count),
         iterator_(0)
 {
 }
@@ -64,7 +64,9 @@ PyObject* PyInputAccessor::binary(
 
 PyObject* PyInputAccessor::get_iterator(PyInputAccessor *self)
 {
-    return new PyInputAccessor(self->py_route_);
+    return new PyInputAccessor(
+            self->py_route_,
+            self->py_route_->it_input_count());
 }
 
 PyObject* PyInputAccessor::iterator_next(PyInputAccessor *self)
@@ -115,10 +117,10 @@ const std::string& PyInputAccessorType::name()
 /*
  * --- PyOutputAccessor --------------------------------------------------------
  */
-PyOutputAccessor::PyOutputAccessor(PyRoute* py_route)
+PyOutputAccessor::PyOutputAccessor(PyRoute* py_route, int32_t count = 0)
         : PyAllocatorGeneric(),
         py_route_(py_route),
-        count_(RTI_RoutingServiceRoute_get_output_count(py_route->get())),
+        count_(count),
         iterator_(0)
 {
 }
@@ -155,7 +157,9 @@ PyObject* PyOutputAccessor::binary(
 
 PyObject* PyOutputAccessor::get_iterator(PyOutputAccessor *self)
 {
-    return new PyOutputAccessor(self->py_route_);
+    return new PyOutputAccessor(
+            self->py_route_,
+            self->py_route_->it_output_count());
 }
 
 PyObject* PyOutputAccessor::iterator_next(PyOutputAccessor *self)
@@ -303,9 +307,12 @@ static PyTypeObject PyRoute_g_type = {
 
 PyRoute::PyRoute(RTI_RoutingServiceRoute *native_route)
       : PyNativeWrapper(native_route),
+        started_(false),
         input_accessor_(new PyInputAccessor(this)),
         output_accessor_(new PyOutputAccessor(this))
 {
+    input_accessor_->count_ = RTI_RoutingServiceRoute_get_input_count(get());
+    output_accessor_->count_ = RTI_RoutingServiceRoute_get_output_count(get());
 }
 
 PyRoute::~PyRoute()
@@ -314,10 +321,31 @@ PyRoute::~PyRoute()
     Py_DECREF(output_accessor_);
 }
 
+void PyRoute::started(bool state)
+{
+    started_ = state;
+}
+
+int32_t PyRoute::it_input_count()
+{
+    return started_
+            ? RTI_RoutingServiceRoute_get_input_count(get())
+            : 0;
+}
+
+int32_t PyRoute::it_output_count()
+{
+    return started_
+            ? RTI_RoutingServiceRoute_get_output_count(get())
+            : 0;
+}
+
 
 PyInput* PyRoute::input(int32_t index)
 {
-    return input(RTI_RoutingServiceRoute_get_input_at(native_, index));
+    PyInput::native_type *native_input =
+            RTI_RoutingServiceRoute_get_input_at(native_, index);
+    return native_input == NULL ? (PyInput*) Py_None : input(native_input);
 }
 
 PyInput* PyRoute::input(const char *name)
@@ -344,7 +372,9 @@ PyInput* PyRoute::input(RTI_RoutingServiceStreamReaderExt *native_input)
 
 PyOutput* PyRoute::output(int32_t index)
 {
-     return output(RTI_RoutingServiceRoute_get_output_at(native_, index));
+    PyOutput::native_type *native_output=
+            RTI_RoutingServiceRoute_get_output_at(native_, index);
+    return native_output == NULL ? (PyOutput*) Py_None : output(native_output);
 }
 
 

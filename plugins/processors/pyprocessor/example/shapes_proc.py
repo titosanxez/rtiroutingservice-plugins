@@ -28,10 +28,3 @@ class ShapesProcessor(proc.Processor):
                 route['Triangle'].write(square.data, square.info)
                 # clear cache
                 route['Square'].take(dict(instance=square.info['instance_handle']))
-
-
-
-class ShapesProcessorPlugin(proc.ProcessorPlugin):
-    def create_processor(route, properties):
-        return ShapesProcessor(route, properties)
-

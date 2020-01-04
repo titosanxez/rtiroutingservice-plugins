@@ -61,6 +61,7 @@ public:
 
     PyInput(
             RTI_RoutingServiceStreamReaderExt *native,
+            int32_t index,
             RTI_RoutingServiceRoute *native_route,
             RTI_RoutingServiceEnvironment *environment);
 
@@ -83,6 +84,7 @@ private:
 
 private:
     friend class PySelectorBuilder;
+    int32_t index_;
     RTI_RoutingServiceRoute *native_route_;
     RTI_RoutingServiceEnvironment *native_env_;
     PyObjectGuard info_;

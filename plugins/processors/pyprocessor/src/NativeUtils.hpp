@@ -30,6 +30,27 @@ public:
     {
     }
 
+    PyObjectGuard(PyObjectGuard&& other) :object_(NULL)
+    {
+        other.swap(*this);
+    }
+
+    PyObjectGuard& operator= (PyObjectGuard&& other) throw ()
+    {
+        // clean up existing values
+        PyObjectGuard temp(std::move(other));
+        std::swap(object_, temp.object_);
+        return *this;
+    }
+
+    /**
+     * @brief Swaps two LoanedSamples containers
+     */
+    void swap(PyObjectGuard& other) throw()
+    {
+        std::swap(object_, other.object_);
+    }
+
     ~PyObjectGuard()
     {
         decref();

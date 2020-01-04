@@ -192,9 +192,11 @@ static PyTypeObject PyInput_g_type = {
 
 PyInput::PyInput(
         RTI_RoutingServiceStreamReaderExt* native,
+        int32_t index,
         RTI_RoutingServiceRoute *native_route,
         RTI_RoutingServiceEnvironment *environment)
         : PyNativeWrapper(native),
+        index_(index),
         native_route_(native_route),
         native_env_(environment),
         info_(PyDict_New())
@@ -304,6 +306,9 @@ PyObject* PyInput::read_or_take_w_selector(
 
 void PyInput::build_info()
 {
+    int32_t index = this->index_;
+    RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), index, PyLong_FromLong);
+
     const char *name = this->name();
     RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), name, PyUnicode_FromString);
 

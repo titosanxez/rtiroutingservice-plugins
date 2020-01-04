@@ -97,6 +97,7 @@ void DynamicDataConverter::from_wstring(
         const rti::core::xtypes::DynamicDataMemberInfo& member_info)
 {
     using rti::core::xtypes::LoanedDynamicData;
+    static int32_t UTF16_BYTE_ORDER = 0;
 
     DDS_Wchar *wstring_value = NULL;
     DDS_UnsignedLong wstring_size = 0;
@@ -111,9 +112,18 @@ void DynamicDataConverter::from_wstring(
                     + std::string(RTI_FUNCTION_NAME)
                     + "error reading member=" + member_info.member_name().to_std_string());
     }
-    PyObjectGuard py_wstring = PyBytes_FromStringAndSize(
-            (char *) wstring_value,
-            wstring_size * BYTES_PER_CHAR);
+    PyObjectGuard py_wstring = PyUnicode_DecodeUTF16(
+            (const char *) wstring_value,
+            wstring_size * BYTES_PER_WCHAR,
+            member_info.member_name().c_str(),
+            &UTF16_BYTE_ORDER);
+    if (py_wstring.get() == NULL) {
+        PyErr_Print();
+        throw dds::core::Error(
+                    "DynamicDataConverter:"
+                    + std::string(RTI_FUNCTION_NAME)
+                    + "error decoding UTF-16 from member=" + member_info.member_name().to_std_string());
+    }
     DDS_Wstring_free(wstring_value);
     if (PyDict_Check(context_stack_.top())) {
         if (PyDict_SetItemString(
@@ -590,20 +600,20 @@ void DynamicDataConverter::to_native_wstring(
         PyObject* py_value)
 
 {
-    assert(PyBytes_Check(py_value));
+    assert(PyUnicode_Check(py_value));
 
      /* iterate wstring */
-    Py_ssize_t wstring_size = 0;
-    DDS_Wchar *wstring_value = NULL;
-    if (PyBytes_AsStringAndSize(
-            py_value,
-            (char **) &wstring_value,
-            &wstring_size) != 0) {
-        PyErr_Print();
-        throw dds::core::Error(
-                "set_wstring: error get wstring value from python object for member id="
-                + std::to_string(member_info.member_index()));
-    }
+    Py_ssize_t wstring_size = PyUnicode_GET_LENGTH(py_value);
+    DDS_Wchar *wstring_value = PyUnicode_2BYTE_DATA(py_value);
+//    if (PyBytes_AsStringAndSize(
+//            py_value,
+//            (char **) &wstring_value,
+//            &wstring_size) != 0) {
+//        PyErr_Print();
+//        throw dds::core::Error(
+//                "set_wstring: error get wstring value from python object for member id="
+//                + std::to_string(member_info.member_index()));
+//    }
 
     DDS_ReturnCode_t ret_code = DDS_DynamicData_set_wstring(
             &(data.native()),

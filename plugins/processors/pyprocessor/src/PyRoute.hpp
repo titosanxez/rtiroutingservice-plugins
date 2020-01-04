@@ -25,7 +25,7 @@ class PyInputAccessorType {
 
 class PyInputAccessor : public PyAllocatorGeneric<PyInputAccessorType, PyInputAccessor> {
 public:
-    PyInputAccessor(PyRoute *py_route);
+    PyInputAccessor(PyRoute *py_route, int32_t count);
 
     static
     Py_ssize_t count(PyInputAccessor *self);
@@ -40,6 +40,7 @@ public:
     PyObject* iterator_next(PyInputAccessor *self);
 
 private:
+    friend class PyRoute;
     PyRoute *py_route_;
     int32_t count_;
     int32_t iterator_;
@@ -55,7 +56,7 @@ class PyOutputAccessorType {
 
 class PyOutputAccessor : public PyAllocatorGeneric<PyOutputAccessorType, PyOutputAccessor> {
 public:
-    PyOutputAccessor(PyRoute *py_route);
+    PyOutputAccessor(PyRoute *py_route, int32_t count);
 
     static
     Py_ssize_t count(PyOutputAccessor *self);
@@ -70,6 +71,7 @@ public:
     PyObject* iterator_next(PyOutputAccessor *self);
 
 private:
+    friend class PyRoute;
     PyRoute *py_route_;
     int32_t count_;
     int32_t iterator_;
@@ -94,7 +96,9 @@ public:
     PyOutput* output(RTI_RoutingServiceStreamWriterExt *native_input);
     PyOutput* output(int32_t index);
     PyOutput* output(const char *name);
-    static PyTypeObject* type();
+    void started(bool state);
+    int32_t it_input_count();
+    int32_t it_output_count();
 
     /* python methods */
     static
@@ -113,6 +117,7 @@ public:
     PyObject* out_accessor(PyRoute *self, void *closure);
 
 private:
+    bool started_;
     PyInputAccessor *input_accessor_;
     PyOutputAccessor *output_accessor_;
 };

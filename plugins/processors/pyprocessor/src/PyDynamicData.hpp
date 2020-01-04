@@ -23,7 +23,7 @@ public:
             dds::core::xtypes::DynamicData& data,
             PyObject *py_dict);
 
-   static const int64_t BYTES_PER_CHAR = sizeof (DDS_Wchar) / sizeof (DDS_Char);
+   static const int64_t BYTES_PER_WCHAR = sizeof (DDS_Wchar) / sizeof (DDS_Char);
 
 private:
     DynamicDataConverter(const dds::core::xtypes::DynamicData& data);

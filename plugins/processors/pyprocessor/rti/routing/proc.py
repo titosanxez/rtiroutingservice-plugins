@@ -35,18 +35,3 @@ class Processor(ABC):
 
     def on_periodic_event(self, route):
         NotImplemented
-
-
-class ProcessorPlugin(ABC):
-
-    @classmethod
-    @abstractmethod
-    def create_processor(route, properties):
-        return NotImplemented
-
-#def create_processor():
-#    return 1
-
-#
-#if __name__ == '__main__':
-#    print('Hello World')

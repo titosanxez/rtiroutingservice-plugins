@@ -38,6 +38,7 @@ public:
 
     PyOutput(
             RTI_RoutingServiceStreamWriterExt *native,
+            int32_t index,
             RTI_RoutingServiceRoute *native_route,
             RTI_RoutingServiceEnvironment *environment);
     RTI_RoutingServiceRoute *native_route();
@@ -48,6 +49,7 @@ public:
 private:
     void build_info();
 private:
+    int32_t index_;
     RTI_RoutingServiceRoute *native_route_;
     RTI_RoutingServiceEnvironment *native_env_;
     PyObjectGuard info_;

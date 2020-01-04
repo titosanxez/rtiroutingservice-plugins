@@ -112,9 +112,11 @@ const dds::core::xtypes::DynamicType& dynamic_type(
 
 PyOutput::PyOutput(
         RTI_RoutingServiceStreamWriterExt* native,
+        int32_t index,
         RTI_RoutingServiceRoute *native_route,
         RTI_RoutingServiceEnvironment *environment)
         : PyNativeWrapper(native),
+        index_(index),
         native_route_(native_route),
         native_env_(environment),
         info_(PyDict_New()),
@@ -130,6 +132,9 @@ RTI_RoutingServiceRoute* PyOutput::native_route()
 
 void PyOutput::build_info()
 {
+    int32_t index = this->index_;
+    RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), index, PyLong_FromLong);
+    
     const char *name =
             RTI_RoutingServiceRoute_get_output_name(native_route(), get());
     RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), name, PyUnicode_FromString);

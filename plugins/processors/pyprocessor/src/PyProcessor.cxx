@@ -82,7 +82,7 @@ PyProcessor::create_native(
         const struct RTI_RoutingServiceProperties *native_properties,
         RTI_RoutingServiceEnvironment *environment)
 {
-    PyProcessor *forwarder;
+    PyProcessor *forwarder = NULL;
     try {
         PyRoute *py_route = new PyRoute(native_route);
         PyObjectGuard py_properties = from_native(native_properties);
@@ -151,29 +151,20 @@ void PyProcessor::forward_on_route_event(
         switch (event_kind) {
 
         case RTI_ROUTING_SERVICE_ROUTE_EVENT_DATA_ON_INPUTS:
-        {
-            if (PyObject_CallMethod(
-                    forwarder->py_processor_,
-                    PyProcessor_METHOD_NAMES[event_kind],
-                    "O",
-                    forwarder->py_route_) == NULL) {
-                PyErr_Print();
-                throw dds::core::Error("on_data_available: error calling Python processor");
-            }
-
-        }
-            break;
-
         case RTI_ROUTING_SERVICE_ROUTE_EVENT_PERIODIC_ACTION:
         {
             if (PyObject_CallMethod(
-                    forwarder->py_processor_,
+                    forwarder->plugin_->processor_class_,
                     PyProcessor_METHOD_NAMES[event_kind],
-                    "O",
+                    "OO",
+                    forwarder->py_processor_,
                     forwarder->py_route_) == NULL) {
                 PyErr_Print();
-                throw dds::core::Error("on_periodic_event: error calling Python processor");
+                throw dds::core::Error(std::string(
+                        PyProcessor_METHOD_NAMES[event_kind])
+                        + ": error calling Python processor");
             }
+
         }
             break;
 
@@ -181,8 +172,11 @@ void PyProcessor::forward_on_route_event(
         {
             void *affected_entity =
                     RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
+            void *event_data =
+                    RTI_RoutingServiceRouteEvent_get_event_data(native_route_event);
             PyObjectGuard py_input = new PyInput(
                     static_cast<RTI_RoutingServiceStreamReaderExt *>(affected_entity),
+                    *(static_cast<int32_t*>(event_data)),
                     forwarder->py_route_->get(),
                     environment);
             RTI_RoutingServiceRoute_set_stream_port_user_data(
@@ -190,13 +184,16 @@ void PyProcessor::forward_on_route_event(
                     static_cast<RTI_RoutingServiceStreamReaderExt *> (affected_entity)->stream_reader_data,
                     py_input.get());
             if (PyObject_CallMethod(
-                    forwarder->py_processor_,
+                    forwarder->plugin_->processor_class_,
                     PyProcessor_METHOD_NAMES[event_kind],
-                    "OO",
+                    "OOO",
+                    forwarder->py_processor_,
                     forwarder->py_route_,
                     py_input.get()) == NULL) {
                 PyErr_Print();
-                throw dds::core::Error("on_input_enabled: error calling Python processor");
+                throw dds::core::Error(std::string(
+                        PyProcessor_METHOD_NAMES[event_kind])
+                        + ": error calling Python processor");
             }
 
             py_input.release();
@@ -213,14 +210,17 @@ void PyProcessor::forward_on_route_event(
             PyObjectGuard py_input =
                     forwarder->py_route_->input(native_input);
             if (PyObject_CallMethod(
-                    forwarder->py_processor_,
+                    forwarder->plugin_->processor_class_,
                     PyProcessor_METHOD_NAMES[event_kind],
-                    "OO",
+                    "OOO",
+                    forwarder->py_processor_,
                     forwarder->py_route_,
                     py_input.get()) == NULL) {
                 PyErr_Print();
                 py_input.release();
-                throw dds::core::Error("on_input_disabled: error calling Python processor");
+                throw dds::core::Error(std::string(
+                        PyProcessor_METHOD_NAMES[event_kind])
+                        + ": error calling Python processor");
             }
 
             RTI_RoutingServiceRoute_set_stream_port_user_data(
@@ -235,8 +235,11 @@ void PyProcessor::forward_on_route_event(
         {
             void *affected_entity =
                     RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
+            void *event_data =
+                    RTI_RoutingServiceRouteEvent_get_event_data(native_route_event);
             PyObjectGuard py_output = new PyOutput(
                     static_cast<RTI_RoutingServiceStreamWriterExt *>(affected_entity),
+                    *(static_cast<int32_t*>(event_data)),
                     forwarder->py_route_->get(),
                     environment);
             RTI_RoutingServiceRoute_set_stream_port_user_data(
@@ -244,13 +247,16 @@ void PyProcessor::forward_on_route_event(
                     static_cast<RTI_RoutingServiceStreamWriterExt *> (affected_entity)->stream_writer_data,
                     py_output.get());
             if (PyObject_CallMethod(
-                    forwarder->py_processor_,
+                    forwarder->plugin_->processor_class_,
                     PyProcessor_METHOD_NAMES[event_kind],
-                    "OO",
+                    "OOO",
+                    forwarder->py_processor_,
                     forwarder->py_route_,
                     py_output.get()) == NULL) {
                 PyErr_Print();
-                throw dds::core::Error("on_output_enabled: error calling Python processor");
+                throw dds::core::Error(std::string(
+                        PyProcessor_METHOD_NAMES[event_kind])
+                        + ": error calling Python processor");
             }
 
             py_output.release();
@@ -267,14 +273,17 @@ void PyProcessor::forward_on_route_event(
             PyObjectGuard pyt_output =
                     forwarder->py_route_->output(native_output);
             if (PyObject_CallMethod(
-                    forwarder->py_processor_,
+                    forwarder->plugin_->processor_class_,
                     PyProcessor_METHOD_NAMES[event_kind],
-                    "OO",
+                    "OOO",
+                    forwarder->py_processor_,
                     forwarder->py_route_,
                     pyt_output.get()) == NULL) {
                 PyErr_Print();
                 pyt_output.release();
-                throw dds::core::Error("on_output_disabled: error calling Python processor");
+                throw dds::core::Error(std::string(
+                        PyProcessor_METHOD_NAMES[event_kind])
+                        + ": error calling Python processor");
             }
 
             RTI_RoutingServiceRoute_set_stream_port_user_data(
@@ -289,13 +298,22 @@ void PyProcessor::forward_on_route_event(
         case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_RUNNING:
         case RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_PAUSED:
         {
+            if (event_kind == RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_STARTED) {
+                forwarder->py_route_->started(true);
+            } else if (event_kind == RTI_ROUTING_SERVICE_ROUTE_EVENT_ROUTE_STOPPED) {
+                forwarder->py_route_->started(false);
+            }
+
             if (PyObject_CallMethod(
-                    forwarder->py_processor_,
+                    forwarder->plugin_->processor_class_,
                     PyProcessor_METHOD_NAMES[event_kind],
-                    "O",
+                    "OO",
+                    forwarder->py_processor_,
                     forwarder->py_route_) == NULL) {
                 PyErr_Print();
-                throw dds::core::Error("on_output_disabled: error calling Python processor");
+                throw dds::core::Error(std::string(
+                        PyProcessor_METHOD_NAMES[event_kind])
+                        + ": error calling Python processor");
             }
         }
             break;
@@ -401,6 +419,66 @@ const std::string PyProcessorPlugin::CLASS_NAME_PROPERTY_NAME =
 const std::string PyProcessorPlugin::MODULE_AUTORELOAD_PROPERTY_NAME =
         "rti.routing.proc.py.module.autoreload";
 
+
+PyProcessorPlugin::PyProcessorPlugin(
+        const struct RTI_RoutingServiceProperties *native_properties)
+        : pyproc_module_(NULL),
+          pyproc_type_(NULL),
+          processor_class_(NULL)
+{
+    static PythonInitializer __python_init;
+
+    // Check module properties
+    property_.module_path(MODULE_PATH_VALUE_DEFAULT);
+
+    for (int i = 0; i < native_properties->count; i++) {
+        if (MODULE_PATH_PROPERTY_NAME
+                == native_properties->properties[i].name) {
+            property_.module_path((char *) native_properties->properties[i].value);
+        } else if (MODULE_PROPERTY_NAME
+                == native_properties->properties[i].name) {
+            property_.module((char *) native_properties->properties[i].value);
+        } else if (CLASS_NAME_PROPERTY_NAME
+                == native_properties->properties[i].name) {
+            property_.class_name((char *) native_properties->properties[i].value);
+        } else if (MODULE_AUTORELOAD_PROPERTY_NAME
+                == native_properties->properties[i].name) {
+            RTIBool boolValue = false;
+
+            if (*((char *) native_properties->properties[i].value) == '\0') {
+                boolValue = true;
+            } else if (!REDAString_strToBoolean(
+                    (char *) native_properties->properties[i].value,
+                    &boolValue)) {
+                throw dds::core::Error(
+                        "PyProcessorPlugin: invalid value for property name="
+                        + std::string((char *) native_properties->properties[i].value));
+            }
+            property_.autoreload(boolValue ? true : false);
+        }
+    }
+
+    /* update python global path so it can find the user module */
+    PyObject *sys_path = PySys_GetObject("path");
+    assert(sys_path != NULL);
+    PyObject *py_module_path = Py_BuildValue("s", property_.module_path().c_str());
+    int append_result = PyList_Append(
+            sys_path,
+            py_module_path);
+    Py_DECREF(py_module_path);
+    if (append_result == -1) {
+        PyErr_Print();
+        throw dds::core::Error("PyProcessorPlugin: add module path");
+    }
+
+    load_module();
+}
+
+const PyProcessorPluginProperty& PyProcessorPlugin::property() const
+{
+    return property_;
+}
+
 template<typename PYOBJECTTYPE>
 void PyProcessorPlugin::add_type()
 {
@@ -482,77 +560,20 @@ void PyProcessorPlugin::load_module()
     add_type<PySampleType>();
 
 
-    //PyObject_Print(plugin_class, stdout, 0);
-    create_processor_ = PyDict_GetItemString(
+    processor_class_ = PyDict_GetItemString(
             user_dict,
             property_.class_name().c_str());
-    if (create_processor_ == NULL) {
+    if (processor_class_ == NULL) {
         PyErr_Print();
         throw dds::core::Error("load_module: create processor method not found");
     }
-    if (!PyCallable_Check(create_processor_)) {
+    if (!PyCallable_Check(processor_class_)) {
         throw dds::core::Error("load_module: create processor is not callable");
     }
-}
-
-
-PyProcessorPlugin::PyProcessorPlugin(
-        const struct RTI_RoutingServiceProperties *native_properties)
-        : pyproc_module_(NULL),
-          pyproc_type_(NULL),
-          create_processor_(NULL)
-{
-    static PythonInitializer __python_init;
-
-    // Check module properties
-    property_.module_path(MODULE_PATH_VALUE_DEFAULT);
-
-    for (int i = 0; i < native_properties->count; i++) {
-        if (MODULE_PATH_PROPERTY_NAME
-                == native_properties->properties[i].name) {
-            property_.module_path((char *) native_properties->properties[i].value);
-        } else if (MODULE_PROPERTY_NAME
-                == native_properties->properties[i].name) {
-            property_.module((char *) native_properties->properties[i].value);
-        } else if (CLASS_NAME_PROPERTY_NAME
-                == native_properties->properties[i].name) {
-            property_.class_name((char *) native_properties->properties[i].value);
-        } else if (MODULE_AUTORELOAD_PROPERTY_NAME
-                == native_properties->properties[i].name) {
-            RTIBool boolValue = false;
-
-            if (*((char *) native_properties->properties[i].value) == '\0') {
-                boolValue = true;
-            } else if (!REDAString_strToBoolean(
-                    (char *) native_properties->properties[i].value,
-                    &boolValue)) {
-                throw dds::core::Error(
-                        "PyProcessorPlugin: invalid value for property name="
-                        + std::string((char *) native_properties->properties[i].value));
-            }
-            property_.autoreload(boolValue ? true : false);
-        }
-    }
-
-    /* update python global path so it can find the user module */
-    PyObject *sys_path = PySys_GetObject("path");
-    assert(sys_path != NULL);
-    PyObject *py_module_path = Py_BuildValue("s", property_.module_path().c_str());
-    int append_result = PyList_Append(
-            sys_path,
-            py_module_path);
-    Py_DECREF(py_module_path);
-    if (append_result == -1) {
+    if (!PyObject_IsSubclass(processor_class_, find_pyproc_type("Processor"))) {
         PyErr_Print();
-        throw dds::core::Error("PyProcessorPlugin: add module path");
+        throw dds::core::Error("PyProcessorPlugin: create_processor must return an implementation of Processor");
     }
-
-    load_module();
-}
-
-const PyProcessorPluginProperty& PyProcessorPlugin::property() const
-{
-    return property_;
 }
 
 
@@ -564,7 +585,29 @@ void PyProcessorPlugin::reload()
         PyErr_Print();
         throw dds::core::Error("PyProcessorPlugin:reload error loading user module");
     }
-    py_user_module_ = new_module;
+    py_user_module_ = std::move(new_module);
+
+    PyObject *user_dict = PyModule_GetDict(py_user_module_.get());
+    if (user_dict == NULL) {
+        PyErr_Print();
+        throw dds::core::Error("load_module: error getting user dictionary");
+    }
+
+    processor_class_ = PyDict_GetItemString(
+            user_dict,
+            property_.class_name().c_str());
+    if (processor_class_ == NULL) {
+        PyErr_Print();
+        throw dds::core::Error("reload: create processor method not found");
+    }
+    if (!PyCallable_Check(processor_class_)) {
+        throw dds::core::Error("reload: create processor is not callable");
+    }
+    if (!PyObject_IsSubclass(processor_class_, find_pyproc_type("Processor"))) {
+        PyErr_Print();
+        throw dds::core::Error(
+                "reload: create_processor must return an implementation of Processor");
+    }
 }
 
 
@@ -576,9 +619,8 @@ PyObject* PyProcessorPlugin::create_processor(
         PyRoute *py_route,
         PyObject *py_properties)
 {
-    PyObject *py_proc = PyObject_CallMethod(
-            create_processor_,
-            "create_processor",
+    PyObject *py_proc = PyObject_CallFunction(
+            processor_class_,
             "OO",
             py_route,
             py_properties);

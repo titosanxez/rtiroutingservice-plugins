@@ -48,7 +48,7 @@
                     </element>
                     <element>
                         <name>rti.routing.proc.py.class_name</name>
-                        <value>ShapesProcessorPlugin</value>
+                        <value>ShapesProcessor</value>
                     </element>
                 </value>
             </property>
@@ -62,10 +62,6 @@
                 Aggregates Squares And Circles from domain 0 into Triangles on domain 1
             </documentation>
         </annotation>
-
-        <administration>
-            <domain_id>0</domain_id>
-        </administration>
 
         <domain_route>
 
