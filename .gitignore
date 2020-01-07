@@ -10,3 +10,4 @@
 /plugins/processors/pyprocessor/dist/
 __pycache__
 nbproject
+.DS_Store
