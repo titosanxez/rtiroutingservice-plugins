@@ -60,6 +60,18 @@ inputs, merging the data together to write a single output sample.
 Building the binding plug-in
 ============================
 
+Requirements
+------------
+
+To build and run the python binding plug-in you will need:
+
+- RTI Connext Professional version 6.0.1 or higher.
+- CMake version 3.7 or higher
+- A target platform supported by *RTI* *RoutingService*.
+- Python 3.6.1
+
+Steps
+-----
 
 In order to build this plug-in, you need to provide the following variables to
 `CMake`:
