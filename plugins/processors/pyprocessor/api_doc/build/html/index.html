@@ -1,0 +1,567 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Processor API Documentation &#8212; Pyproc  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-proc">
+<span id="processor-api-documentation"></span><h1>Processor API Documentation<a class="headerlink" href="#module-proc" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+<dl class="class">
+<dt id="proc.Input">
+<em class="property">class </em><code class="sig-prename descclassname">proc.</code><code class="sig-name descname">Input</code><a class="reference internal" href="_modules/proc.html#Input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Generic Representation of a Route’s input</p>
+<dl class="method">
+<dt id="proc.Input.info">
+<em class="property">property </em><code class="sig-name descname">info</code><a class="headerlink" href="#proc.Input.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary containing information that uniquely describes this
+Input.</p>
+<p>The dictionary contains the following key items:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;index&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">int</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="nb">str</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;stream_info&quot;</span> <span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;stream_name&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">str</span><span class="o">&gt;</span><span class="p">,</span>
+        <span class="s2">&quot;type_name&quot;</span><span class="p">:</span>  <span class="o">&lt;</span><span class="nb">str</span><span class="o">&gt;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>where</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">index</span></code>: The access index of this Input</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> : The name of this Input, as specified in the XML
+configuration</p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">stream_info</span></code>:</dt><dd><ul>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">stream_name</span></code>: Name of the stream this input reads</dt><dd><p>data from</p>
+</dd>
+</dl>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">type_name</span></code>: Registered name of the type associated to the
+stream and data</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Input.read">
+<code class="sig-name descname">read</code><span class="sig-paren">(</span><em class="sig-param">selector={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Input.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Input.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the available samples in this Input.</p>
+<p>Similar to take() except that the read samples will remain in the
+undelying StreamReader’s cache</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Input.take">
+<code class="sig-name descname">take</code><span class="sig-paren">(</span><em class="sig-param">selector={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Input.take"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Input.take" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the available samples in this Input.</p>
+<p>This operation will call the take operation on the underlying StreamReader.</p>
+<p>Note that this operation will remove all the taken samples from the
+StreamReader’s cache.</p>
+<p>An optional selector as a dictionary can be provided in order to read
+subset of data (e.g., a particular instance). The selector can
+contain the following key items:</p>
+<blockquote>
+<div><div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;sample_state&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">int</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;view_state&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">int</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;instance_state&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">int</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;max_samples&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">int</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;instance&quot;</span> <span class="p">:</span> <span class="p">{</span><span class="o">&lt;</span><span class="nb">bool</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">Bytes</span><span class="o">&gt;</span><span class="p">},</span>
+    <span class="s2">&quot;next_instance&quot;</span> <span class="p">:{</span><span class="o">&lt;</span><span class="nb">bool</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">Bytes</span><span class="o">&gt;</span><span class="p">},</span>
+    <span class="s2">&quot;filter&quot;</span> <span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;expression&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">str</span><span class="o">&gt;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl>
+<dt>where</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">sample_state</span></code>: The sample read state as DDS_SampleStateKind</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">view_state</span></code> : the instance view state as DDS_ViewStateKind</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">instance_state</span></code> : the instance view state as DDS_InstanteStateKind</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_samples</span></code> : Choose to only read/take up to a maximum number of samples.</p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">instance</span></code> :</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">valid:</span></code>: Indicates whether the handle is valid or not</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">value</span></code>: A 16-byte list representing a handle to the instance
+to read/take. Setting this field causes the read/take to access
+only samples belonging the single
+specified instance handle. The read/take may
+operation may fail if the handle does not
+correspond to an existing data-object known to this Input.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">next_instance</span></code>:</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">valid</span></code>: Indicates whether the handle is valid or not</p></li>
+<li><p><cite>value`</cite>: A 16-byte list representing a handle to the
+instance from which to read next. The subsequent read or take
+operation to access only samples belonging a single instance
+whose handle is considered ‘next’ after the provided handle.
+The accessed samples will all belong to the ‘next’ instance with
+handle ‘greater’ than the specified previous handle that has
+available samples. An invalid handle can be provided as
+“less than” any valid handle so the read/take will return the
+samples for the instance that has the smallest handle among a
+all the instances that contain available samples.</p>
+<p>Note that it is possible to provide a handle that does not c
+correspond to an instance currently managed by the underlying
+StreamReader.</p>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">filter</span></code>: A dictionary that represents a content filter</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">expression</span></code>: An expression selection a subset of data based
+on its content.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>selector</strong> (<em>dict</em>) – Ooptional. A dictionary that represents a selector of a
+a subset of the data to be read.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of read samples.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List of Sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="proc.Output">
+<em class="property">class </em><code class="sig-prename descclassname">proc.</code><code class="sig-name descname">Output</code><a class="reference internal" href="_modules/proc.html#Output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Generic Representation of a Route’s output</p>
+<dl class="method">
+<dt id="proc.Output.info">
+<em class="property">property </em><code class="sig-name descname">info</code><a class="headerlink" href="#proc.Output.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary containing information that uniquely describes this
+Output.</p>
+<p>The dictionary contains the following key items:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;index&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">int</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="nb">str</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;stream_info&quot;</span> <span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;stream_name&quot;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="nb">str</span><span class="o">&gt;</span><span class="p">,</span>
+        <span class="s2">&quot;type_name&quot;</span><span class="p">:</span>  <span class="o">&lt;</span><span class="nb">str</span><span class="o">&gt;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>where</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">index</span></code>: The access index of this output</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> : The name of this Input, as specified in the XML
+configuration</p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">stream_info</span></code>:</dt><dd><ul>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">stream_name</span></code>: Name of the stream this output reads</dt><dd><p>data from</p>
+</dd>
+</dl>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">type_name</span></code>: Registered name of the type associated to the
+stream and data</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Output.write">
+<code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Output.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Output.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the specified data and info sample in this output.</p>
+<p>This operation will call the write operation on the underlying StreamWriter.</p>
+<p>If an <code class="docutils literal notranslate"><span class="pre">info</span></code> parameter is provider, the underlying StreamWriter::write
+implementation may use it to propagate some of the metadata elements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>dict</em>) – A dictionary that represents the sample data, in the
+same format as in Sample.data</p></li>
+<li><p><strong>info</strong> (<em>dict</em>) – Optional. A dictionary that represents the sample
+info, in the same format as in Sample.info.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="proc.Processor">
+<em class="property">class </em><code class="sig-prename descclassname">proc.</code><code class="sig-name descname">Processor</code><span class="sig-paren">(</span><em class="sig-param">route</em>, <em class="sig-param">properties</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Processor interface definition.</p>
+<p>Provides a way to process Route events and  control the data forwarding
+process.</p>
+<p>A Processor receives event notifications from its Route owner in the form
+of operation callbacks. Each event occurrence will be dispatched to the
+Processor by calling the corresponding method.</p>
+<p>Each dispatching method has a signature according to the event kind and
+data it is associated with. Each event is associated with a Route state;
+hence limitations and constraints may apply individually to each method.</p>
+<p>Note that throwing an exception while processing any of the event
+notifications is allowed. In this situation, the Route owner will reject
+the events and none of the associated post conditions will be applied,
+including state transitions.</p>
+<p>Multi-threading safety:
+Partially Safe All operations on a concrete Processor object are safe and
+always serialized on a given Session. Operations on different Processor
+objects may be called concurrently if they belong to different Routes.</p>
+<dl class="method">
+<dt id="proc.Processor.__init__">
+<em class="property">abstract </em><code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">route</em>, <em class="sig-param">properties</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a Route Processor.
+:abstractmethod:</p>
+<p>This function is called when the Route containing the Processor is enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p></li>
+<li><p><strong>properties</strong> (<em>dict</em>) – Configuration properties for the Processor.
+These properties corresponds to the properties specified within the
+tag <code class="docutils literal notranslate"><span class="pre">&lt;processor&gt;</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_data_available">
+<code class="sig-name descname">on_data_available</code><span class="sig-paren">(</span><em class="sig-param">route</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_data_available"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_data_available" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the Route DATA_AVAILABLE event.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Abstractmethod</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<p>This operation is called each time any of the inputs contained in
+the owner Route is notified about new data. Notifications of this
+event can occur only while the Route is in the RUNNING state.</p>
+<p>Implementations are allowed to access any of the Input and Output of
+the owner Route to read and write data, respectively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_input_disabled">
+<code class="sig-name descname">on_input_disabled</code><span class="sig-paren">(</span><em class="sig-param">route</em>, <em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_input_disabled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_input_disabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the INPUT_DISABLED event.
+:abstractmethod:</p>
+<p>This operation is called when an INPUT_DISABLED event occurs that
+affects any of the inputs contained in the owner Route.</p>
+<p>This operation is called right before the affected Input is disabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p></li>
+<li><p><strong>input</strong> (<a class="reference internal" href="#proc.Input" title="proc.Input"><em>Input</em></a>) – The Input about to be disabled.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_input_enabled">
+<code class="sig-name descname">on_input_enabled</code><span class="sig-paren">(</span><em class="sig-param">route</em>, <em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_input_enabled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_input_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the INPUT_ENABLED event.
+:abstractmethod:</p>
+<p>This operation is called when an Input enabled event occurs that affects
+any of the inputs contained in the owner Route.</p>
+<p>This operation is called right after the affected Input has been enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p></li>
+<li><p><strong>input</strong> (<a class="reference internal" href="#proc.Input" title="proc.Input"><em>Input</em></a>) – The just enabled Input</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_output_disabled">
+<code class="sig-name descname">on_output_disabled</code><span class="sig-paren">(</span><em class="sig-param">route</em>, <em class="sig-param">output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_output_disabled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_output_disabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the OUTPUT_DISABLED event.
+:abstractmethod:</p>
+<p>This operation is called when an OUTPUT_DISABLED event occurs that
+affects any of the outputs contained in the owner Route.</p>
+<p>This operation is called right before the affected Output is disabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p></li>
+<li><p><strong>output</strong> (<a class="reference internal" href="#proc.Output" title="proc.Output"><em>Output</em></a>) – The Output about to be disabled.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_output_enabled">
+<code class="sig-name descname">on_output_enabled</code><span class="sig-paren">(</span><em class="sig-param">route</em>, <em class="sig-param">output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_output_enabled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_output_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the OUTPUT_ENABLED event.
+:abstractmethod:</p>
+<p>This operation is called when an Output enabled event occurs that affects
+any of the outputs contained in the owner Route.</p>
+<p>This operation is called right after the affected Output has been enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p></li>
+<li><p><strong>output</strong> (<a class="reference internal" href="#proc.Output" title="proc.Output"><em>Output</em></a>) – The just enabled Output.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_pause">
+<code class="sig-name descname">on_pause</code><span class="sig-paren">(</span><em class="sig-param">route</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_pause"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_pause" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the Route paused event.
+:abstractmethod:</p>
+<p>This operation is called right before the Route enters the PAUSED
+state. At the time this operation is called, all the inputs and
+outputs within the Route are still enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_periodic_event">
+<code class="sig-name descname">on_periodic_event</code><span class="sig-paren">(</span><em class="sig-param">route</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_periodic_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_periodic_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the Route periodic action event.
+:abstractmethod:</p>
+<p>This operation is called periodically at the rate specified in the
+parent Session of the Route owner.</p>
+<p>Periodic notifications can occur only while the Route is in the
+RUNNING state.</p>
+<p>Implementations are allowed to access any of the Input and Output of
+the owner Route to read and write data, respectively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_run">
+<code class="sig-name descname">on_run</code><span class="sig-paren">(</span><em class="sig-param">route</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the Route RUN event.
+:abstractmethod:</p>
+<p>This operation is called right before the Route enters the RUNNING
+state. This operation is called after the Route went to STARTED after
+a successful notification to this Processor,</p>
+<p>If the Route was manually paused before via an Administration call,
+this operation will not be called until a manual run operation is performed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_start">
+<code class="sig-name descname">on_start</code><span class="sig-paren">(</span><em class="sig-param">route</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the ROUTE_STARTED event.
+:abstractmethod:</p>
+<p>This operation is called right before the Route enters the STARTED
+state. At the time this operation is called, all the inputs and
+outputs within the Route are enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Processor.on_stop">
+<code class="sig-name descname">on_stop</code><span class="sig-paren">(</span><em class="sig-param">route</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Processor.on_stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Processor.on_stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notification of the Route stopped event.
+:abstractmethod:</p>
+<p>This operation is called right before the Route enters the STOPPED
+state. At the time this operation is called, all the inputs and
+outputs within the Route are still enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>route</strong> (<a class="reference internal" href="#proc.Route" title="proc.Route"><em>Route</em></a>) – owner that contains this Processor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="proc.Route">
+<em class="property">class </em><code class="sig-prename descclassname">proc.</code><code class="sig-name descname">Route</code><a class="reference internal" href="_modules/proc.html#Route"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Route" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Representation of the Route object that owns a Processor</p>
+<dl class="method">
+<dt id="proc.Route.__getitem__">
+<code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proc.html#Route.__getitem__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Route.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns an Input or Output</p>
+<p>Looks up an input or an output by its name (as specified in the
+configuration)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – The name of the input or output</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The specified Input or Output object</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>An Input or Output object, or None if the input our output does
+not exist or it’s not enabled.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Route.inputs">
+<em class="property">property </em><code class="sig-name descname">inputs</code><a class="headerlink" href="#proc.Route.inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterator to the enabled Input objects within this Route</p>
+<p>Note that this iterator can be used only when the Route is started.
+Otherwise, the iterator will be finished.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proc.Route.outputs">
+<em class="property">property </em><code class="sig-name descname">outputs</code><a class="headerlink" href="#proc.Route.outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterator to the enabled Output objects within this Route</p>
+<p>Note that this iterator can be used only when the Route is started.
+Otherwise, the iterator will be finished.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="proc.Sample">
+<em class="property">class </em><code class="sig-prename descclassname">proc.</code><code class="sig-name descname">Sample</code><a class="reference internal" href="_modules/proc.html#Sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proc.Sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Representation of sample objects returned by a read/take operation.</p>
+<p>It’s composed of two items, the sample data and sample info (metadata).</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Pyproc</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, RTI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

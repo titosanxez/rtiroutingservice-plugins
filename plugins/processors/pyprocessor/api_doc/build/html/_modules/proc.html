@@ -1,0 +1,570 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>proc &#8212; Pyproc  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for proc</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">IntEnum</span>
+
+
+<div class="viewcode-block" id="Processor"><a class="viewcode-back" href="../index.html#proc.Processor">[docs]</a><span class="k">class</span> <span class="nc">Processor</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Processor interface definition.</span>
+
+<span class="sd">    Provides a way to process Route events and  control the data forwarding</span>
+<span class="sd">    process.</span>
+
+<span class="sd">    A Processor receives event notifications from its Route owner in the form</span>
+<span class="sd">    of operation callbacks. Each event occurrence will be dispatched to the</span>
+<span class="sd">    Processor by calling the corresponding method.</span>
+
+<span class="sd">    Each dispatching method has a signature according to the event kind and</span>
+<span class="sd">    data it is associated with. Each event is associated with a Route state;</span>
+<span class="sd">    hence limitations and constraints may apply individually to each method.</span>
+
+<span class="sd">    Note that throwing an exception while processing any of the event</span>
+<span class="sd">    notifications is allowed. In this situation, the Route owner will reject</span>
+<span class="sd">    the events and none of the associated post conditions will be applied,</span>
+<span class="sd">    including state transitions.</span>
+
+<span class="sd">    Multi-threading safety:</span>
+<span class="sd">    Partially Safe All operations on a concrete Processor object are safe and</span>
+<span class="sd">    always serialized on a given Session. Operations on different Processor</span>
+<span class="sd">    objects may be called concurrently if they belong to different Routes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Processor.__init__"><a class="viewcode-back" href="../index.html#proc.Processor.__init__">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="n">properties</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates a Route Processor.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This function is called when the Route containing the Processor is enabled.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        :param dict properties: Configuration properties for the Processor.</span>
+<span class="sd">         These properties corresponds to the properties specified within the</span>
+<span class="sd">         tag ``&lt;processor&gt;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_input_enabled"><a class="viewcode-back" href="../index.html#proc.Processor.on_input_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">on_input_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;  Notification of the INPUT_ENABLED event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called when an Input enabled event occurs that affects</span>
+<span class="sd">        any of the inputs contained in the owner Route.</span>
+
+<span class="sd">        This operation is called right after the affected Input has been enabled.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        :param input:  The just enabled Input</span>
+<span class="sd">        :type input: Input</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_input_disabled"><a class="viewcode-back" href="../index.html#proc.Processor.on_input_disabled">[docs]</a>    <span class="k">def</span> <span class="nf">on_input_disabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Notification of the INPUT_DISABLED event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called when an INPUT_DISABLED event occurs that</span>
+<span class="sd">        affects any of the inputs contained in the owner Route.</span>
+
+<span class="sd">        This operation is called right before the affected Input is disabled.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        :param input:  The Input about to be disabled.</span>
+<span class="sd">        :type input: Input</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_output_enabled"><a class="viewcode-back" href="../index.html#proc.Processor.on_output_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">on_output_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;  Notification of the OUTPUT_ENABLED event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called when an Output enabled event occurs that affects</span>
+<span class="sd">        any of the outputs contained in the owner Route.</span>
+
+<span class="sd">        This operation is called right after the affected Output has been enabled.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        :param output:  The just enabled Output.</span>
+<span class="sd">        :type output: Output</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_output_disabled"><a class="viewcode-back" href="../index.html#proc.Processor.on_output_disabled">[docs]</a>    <span class="k">def</span> <span class="nf">on_output_disabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Notification of the OUTPUT_DISABLED event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called when an OUTPUT_DISABLED event occurs that</span>
+<span class="sd">        affects any of the outputs contained in the owner Route.</span>
+
+<span class="sd">        This operation is called right before the affected Output is disabled.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        :param output:  The Output about to be disabled.</span>
+<span class="sd">        :type output: Output</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_start"><a class="viewcode-back" href="../index.html#proc.Processor.on_start">[docs]</a>    <span class="k">def</span> <span class="nf">on_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Notification of the ROUTE_STARTED event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called right before the Route enters the STARTED</span>
+<span class="sd">        state. At the time this operation is called, all the inputs and</span>
+<span class="sd">        outputs within the Route are enabled.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_stop"><a class="viewcode-back" href="../index.html#proc.Processor.on_stop">[docs]</a>    <span class="k">def</span> <span class="nf">on_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Notification of the Route stopped event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called right before the Route enters the STOPPED</span>
+<span class="sd">        state. At the time this operation is called, all the inputs and</span>
+<span class="sd">        outputs within the Route are still enabled.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_run"><a class="viewcode-back" href="../index.html#proc.Processor.on_run">[docs]</a>    <span class="k">def</span> <span class="nf">on_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;  Notification of the Route RUN event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called right before the Route enters the RUNNING</span>
+<span class="sd">        state. This operation is called after the Route went to STARTED after</span>
+<span class="sd">        a successful notification to this Processor,</span>
+
+<span class="sd">        If the Route was manually paused before via an Administration call,</span>
+<span class="sd">        this operation will not be called until a manual run operation is performed.</span>
+
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_pause"><a class="viewcode-back" href="../index.html#proc.Processor.on_pause">[docs]</a>    <span class="k">def</span> <span class="nf">on_pause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Notification of the Route paused event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called right before the Route enters the PAUSED</span>
+<span class="sd">        state. At the time this operation is called, all the inputs and</span>
+<span class="sd">        outputs within the Route are still enabled.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_data_available"><a class="viewcode-back" href="../index.html#proc.Processor.on_data_available">[docs]</a>    <span class="k">def</span> <span class="nf">on_data_available</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;  Notification of the Route DATA_AVAILABLE event.</span>
+
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called each time any of the inputs contained in</span>
+<span class="sd">        the owner Route is notified about new data. Notifications of this</span>
+<span class="sd">        event can occur only while the Route is in the RUNNING state.</span>
+
+<span class="sd">        Implementations are allowed to access any of the Input and Output of</span>
+<span class="sd">        the owner Route to read and write data, respectively.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Processor.on_periodic_event"><a class="viewcode-back" href="../index.html#proc.Processor.on_periodic_event">[docs]</a>    <span class="k">def</span> <span class="nf">on_periodic_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Notification of the Route periodic action event.</span>
+<span class="sd">        :abstractmethod:</span>
+
+<span class="sd">        This operation is called periodically at the rate specified in the</span>
+<span class="sd">        parent Session of the Route owner.</span>
+
+<span class="sd">        Periodic notifications can occur only while the Route is in the</span>
+<span class="sd">        RUNNING state.</span>
+
+<span class="sd">        Implementations are allowed to access any of the Input and Output of</span>
+<span class="sd">        the owner Route to read and write data, respectively.</span>
+
+<span class="sd">        :param route: owner that contains this Processor</span>
+<span class="sd">        :type route: Route</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div></div>
+
+
+<div class="viewcode-block" id="Route"><a class="viewcode-back" href="../index.html#proc.Route">[docs]</a><span class="k">class</span> <span class="nc">Route</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; Representation of the Route object that owns a Processor &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns an iterator to the enabled Input objects within this Route</span>
+
+<span class="sd">        Note that this iterator can be used only when the Route is started.</span>
+<span class="sd">        Otherwise, the iterator will be finished.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns an iterator to the enabled Output objects within this Route</span>
+
+<span class="sd">        Note that this iterator can be used only when the Route is started.</span>
+<span class="sd">        Otherwise, the iterator will be finished.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span>
+
+
+<div class="viewcode-block" id="Route.__getitem__"><a class="viewcode-back" href="../index.html#proc.Route.__getitem__">[docs]</a>    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;returns an Input or Output</span>
+
+<span class="sd">        Looks up an input or an output by its name (as specified in the</span>
+<span class="sd">        configuration)</span>
+
+<span class="sd">        :param str name: The name of the input or output</span>
+
+<span class="sd">        :returns: The specified Input or Output object</span>
+<span class="sd">        :rtype: An Input or Output object, or None if the input our output does</span>
+<span class="sd">         not exist or it&#39;s not enabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div></div>
+
+<div class="viewcode-block" id="Input"><a class="viewcode-back" href="../index.html#proc.Input">[docs]</a><span class="k">class</span> <span class="nc">Input</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Generic Representation of a Route&#39;s input&quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a dictionary containing information that uniquely describes this</span>
+<span class="sd">        Input.</span>
+
+<span class="sd">        The dictionary contains the following key items:</span>
+
+<span class="sd">        .. code-block:: Python</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;index&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;name&quot;: &lt;str&gt;,</span>
+<span class="sd">                &quot;stream_info&quot; : {</span>
+<span class="sd">                    &quot;stream_name&quot; : &lt;str&gt;,</span>
+<span class="sd">                    &quot;type_name&quot;:  &lt;str&gt;</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+
+<span class="sd">        where</span>
+<span class="sd">            - ``index``: The access index of this Input</span>
+<span class="sd">            - ``name`` : The name of this Input, as specified in the XML</span>
+<span class="sd">              configuration</span>
+<span class="sd">            - ``stream_info``:</span>
+<span class="sd">                - ``stream_name``: Name of the stream this input reads</span>
+<span class="sd">                   data from</span>
+<span class="sd">                - ``type_name``: Registered name of the type associated to the</span>
+<span class="sd">                  stream and data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span>
+
+<div class="viewcode-block" id="Input.take"><a class="viewcode-back" href="../index.html#proc.Input.take">[docs]</a>    <span class="k">def</span> <span class="nf">take</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selector</span><span class="o">=</span><span class="p">{}):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all the available samples in this Input.</span>
+
+<span class="sd">        This operation will call the take operation on the underlying StreamReader.</span>
+
+<span class="sd">        Note that this operation will remove all the taken samples from the</span>
+<span class="sd">        StreamReader&#39;s cache.</span>
+
+<span class="sd">        An optional selector as a dictionary can be provided in order to read</span>
+<span class="sd">        subset of data (e.g., a particular instance). The selector can</span>
+<span class="sd">        contain the following key items:</span>
+
+<span class="sd">         .. code-block:: Python</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;sample_state&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;view_state&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;instance_state&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;max_samples&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;instance&quot; : {&lt;bool&gt;, &lt;Bytes&gt;},</span>
+<span class="sd">                &quot;next_instance&quot; :{&lt;bool&gt;, &lt;Bytes&gt;},</span>
+<span class="sd">                &quot;filter&quot; : {</span>
+<span class="sd">                    &quot;expression&quot; : &lt;str&gt;</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+
+<span class="sd">         where</span>
+<span class="sd">            - ``sample_state``: The sample read state as DDS_SampleStateKind</span>
+<span class="sd">            - ``view_state`` : the instance view state as DDS_ViewStateKind</span>
+<span class="sd">            - ``instance_state`` : the instance view state as DDS_InstanteStateKind</span>
+<span class="sd">            - ``max_samples`` : Choose to only read/take up to a maximum number of samples.</span>
+<span class="sd">            - ``instance`` :</span>
+<span class="sd">                - ``valid:``: Indicates whether the handle is valid or not</span>
+<span class="sd">                - ``value``: A 16-byte list representing a handle to the instance</span>
+<span class="sd">                  to read/take. Setting this field causes the read/take to access</span>
+<span class="sd">                  only samples belonging the single</span>
+<span class="sd">                  specified instance handle. The read/take may</span>
+<span class="sd">                  operation may fail if the handle does not</span>
+<span class="sd">                  correspond to an existing data-object known to this Input.</span>
+<span class="sd">            - ``next_instance``:</span>
+<span class="sd">                - ``valid``: Indicates whether the handle is valid or not</span>
+<span class="sd">                - `value``: A 16-byte list representing a handle to the</span>
+<span class="sd">                  instance from which to read next. The subsequent read or take</span>
+<span class="sd">                  operation to access only samples belonging a single instance</span>
+<span class="sd">                  whose handle is considered &#39;next&#39; after the provided handle.</span>
+<span class="sd">                  The accessed samples will all belong to the &#39;next&#39; instance with</span>
+<span class="sd">                  handle &#39;greater&#39; than the specified previous handle that has</span>
+<span class="sd">                  available samples. An invalid handle can be provided as</span>
+<span class="sd">                  &quot;less than&quot; any valid handle so the read/take will return the</span>
+<span class="sd">                  samples for the instance that has the smallest handle among a</span>
+<span class="sd">                  all the instances that contain available samples.</span>
+
+<span class="sd">                  Note that it is possible to provide a handle that does not c</span>
+<span class="sd">                  correspond to an instance currently managed by the underlying</span>
+<span class="sd">                  StreamReader.</span>
+<span class="sd">            - ``filter``: A dictionary that represents a content filter</span>
+<span class="sd">                - ``expression``: An expression selection a subset of data based</span>
+<span class="sd">                  on its content.</span>
+
+<span class="sd">        :param dict selector: Ooptional. A dictionary that represents a selector of a</span>
+<span class="sd">         a subset of the data to be read.</span>
+
+<span class="sd">        :returns: A list of read samples.</span>
+<span class="sd">        :rtype: List of Sample</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div>
+
+<div class="viewcode-block" id="Input.read"><a class="viewcode-back" href="../index.html#proc.Input.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selector</span><span class="o">=</span><span class="p">{}):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all the available samples in this Input.</span>
+
+<span class="sd">        Similar to take() except that the read samples will remain in the</span>
+<span class="sd">        undelying StreamReader&#39;s cache</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div></div>
+
+<div class="viewcode-block" id="Output"><a class="viewcode-back" href="../index.html#proc.Output">[docs]</a><span class="k">class</span> <span class="nc">Output</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Generic Representation of a Route&#39;s output&quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a dictionary containing information that uniquely describes this</span>
+<span class="sd">        Output.</span>
+
+<span class="sd">        The dictionary contains the following key items:</span>
+
+<span class="sd">        .. code-block:: Python</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;index&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;name&quot;: &lt;str&gt;,</span>
+<span class="sd">                &quot;stream_info&quot; : {</span>
+<span class="sd">                    &quot;stream_name&quot; : &lt;str&gt;,</span>
+<span class="sd">                    &quot;type_name&quot;:  &lt;str&gt;</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+
+<span class="sd">        where</span>
+<span class="sd">            - ``index``: The access index of this output</span>
+<span class="sd">            - ``name`` : The name of this Input, as specified in the XML</span>
+<span class="sd">              configuration</span>
+<span class="sd">            - ``stream_info``:</span>
+<span class="sd">                - ``stream_name``: Name of the stream this output reads</span>
+<span class="sd">                   data from</span>
+<span class="sd">                - ``type_name``: Registered name of the type associated to the</span>
+<span class="sd">                  stream and data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">NotImplemented</span>
+
+<div class="viewcode-block" id="Output.write"><a class="viewcode-back" href="../index.html#proc.Output.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the specified data and info sample in this output.</span>
+
+<span class="sd">        This operation will call the write operation on the underlying StreamWriter.</span>
+
+<span class="sd">        If an ``info`` parameter is provider, the underlying StreamWriter::write</span>
+<span class="sd">        implementation may use it to propagate some of the metadata elements.</span>
+
+<span class="sd">        :param dict data: A dictionary that represents the sample data, in the</span>
+<span class="sd">         same format as in Sample.data</span>
+
+<span class="sd">        :param dict info: Optional. A dictionary that represents the sample</span>
+<span class="sd">         info, in the same format as in Sample.info.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">NotImplemented</span></div></div>
+
+<div class="viewcode-block" id="Sample"><a class="viewcode-back" href="../index.html#proc.Sample">[docs]</a><span class="k">class</span> <span class="nc">Sample</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;  Representation of sample objects returned by a read/take operation.</span>
+
+<span class="sd">    It&#39;s composed of two items, the sample data and sample info (metadata).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+        <span class="sd">&quot;&quot;&quot; User-data portion of the sample.</span>
+
+<span class="sd">        Represented as dictionary where the key is the  member name as string</span>
+<span class="sd">        and the value is the member value. The member values can be:</span>
+
+<span class="sd">        - Long: For all size of signed an unsigned integers, as well as enums</span>
+<span class="sd">        - Float: For float32 and float64</span>
+<span class="sd">        - Unicode: for string and wide-string</span>
+<span class="sd">        - List: for arrays and sequences</span>
+<span class="sd">        - Dictionary: For complex member</span>
+
+<span class="sd">        For example consider the following type in IDL:</span>
+
+<span class="sd">        .. code-block:: C</span>
+
+<span class="sd">            struct OtherType {</span>
+<span class="sd">                int16 m_short;</span>
+<span class="sd">                string m_string</span>
+<span class="sd">            };</span>
+
+<span class="sd">            struct MyType{</span>
+<span class="sd">                int64 m_long;</span>
+<span class="sd">                int32 m_array[10]</span>
+<span class="sd">                OtherType m_other;</span>
+<span class="sd">            };</span>
+
+<span class="sd">        A sample of ``MyType`` would map to the following dictionary:</span>
+
+<span class="sd">        .. code-block:: Python</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;m_long&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;m_array&quot;: [&lt;integer_0&gt;, ... ,&lt;integer_9&gt;]</span>
+<span class="sd">                &quot;m_other&quot; : {</span>
+<span class="sd">                    &quot;m_short&quot; : &lt;int&gt;,</span>
+<span class="sd">                    &quot;m_string&quot;:  &lt;str&gt;</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+
+<span class="sd">        Mutable.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span>
+
+        <span class="sd">&quot;&quot;&quot;  Metadata portion of the sample (as DDS_SampleInfo).</span>
+
+<span class="sd">        Represented as dictionary where the key is the  member name as string</span>
+<span class="sd">        and the value is the member value.</span>
+
+<span class="sd">        Supported members are:</span>
+
+<span class="sd">        .. code-block:: Python</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;instance_handle&quot; : {&lt;bool&gt;, &lt;Bytes&gt;},</span>
+<span class="sd">                &quot;publication_handle&quot;: {&lt;bool&gt;, &lt;Bytes&gt;},</span>
+<span class="sd">                &quot;sample_state&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;view_state&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;instance_state&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;valid_data&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;flag&quot; : &lt;int&gt;,</span>
+<span class="sd">                &quot;original_publication_virtual_sequence_number&quot; : {&lt;int&gt;, &lt;int&gt;},</span>
+<span class="sd">                &quot;original_publication_virtual_guid&quot; : [&lt;int&gt;],</span>
+<span class="sd">                &quot;related_original_publication_virtual_sequence_number&quot; :{ &lt;int&gt;, &lt;int&gt;},</span>
+<span class="sd">                &quot;related_original_publication_virtual_guid&quot; : [&lt;int&gt;],</span>
+<span class="sd">                &quot;reception_sequence_number&quot; :{&lt;int&gt;, &lt;int&gt;},</span>
+<span class="sd">                &quot;publication_sequence_number&quot; : {&lt;int&gt;, &lt;int&gt;},</span>
+<span class="sd">                &quot;reception_timestamp&quot; : {&lt;int&gt;, &lt;int&gt;},</span>
+<span class="sd">                &quot;source_timestamp&quot; : {&lt;int&gt;, &lt;int&gt;}</span>
+<span class="sd">            }</span>
+
+<span class="sd">        For information about each key of the ``info`` dictionary, see</span>
+<span class="sd">        RTI Connext DDS User&#39;s Manual.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Pyproc</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, RTI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

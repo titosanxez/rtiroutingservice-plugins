@@ -288,7 +288,7 @@ static PyMappingMethods PyRoute_g_mapping = {
 
 static PyTypeObject PyRoute_g_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "pyproc.Route",
+    .tp_name = "proc.Route",
     .tp_doc = "Route object",
     .tp_basicsize = sizeof(PyRoute),
     .tp_itemsize = 0,

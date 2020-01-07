@@ -1,3 +1,8 @@
+.. |br| raw:: html
+
+   <br />
+
+
 ********************
 Processor Python API
 ********************
@@ -11,8 +16,8 @@ Concept
 *Routing Service Processor* is a pluggable-component that allows controlling the
 forwarding process that occurs within *Routes*. The *Routing Service Software
 Development Kit* offers a set of APIs that you can implement to customize
-the *Route* behavior. See [Chapter SDK in Routing Service User's Manual]
-(https://community.rti.com/static/documentation/connext-dds/6.0.0/images/manuals/routing_service/sdk.html)
+the *Route* behavior. See `Chapter SDK in Routing Service User's Manual
+<https://community.rti.com/static/documentation/connext-dds/6.0.0/images/manuals/routing_service/sdk.html>`_
 for a list of officially supported languages.
 
 This plug-in provides an implementation of a *Processor* (to provide an user-level
@@ -23,7 +28,7 @@ The general model of a *Processor* is shown in figure below.
 
 .. figure:: ./images/RouterProcessorComponent.svg
     :align: center
-    :width: 600px
+    :width: 700px
 
 
 A *Processor* represents a multiple-input, multiple-output component attached
@@ -52,6 +57,175 @@ inputs, merging the data together to write a single output sample.
             route.outputs[0].write(output_data)
 
 
+Building the binding plug-in
+============================
+
+
+In order to build this plug-in, you need to provide the following variables to
+`CMake`:
+
+-   `CONNEXTDDS_DIR`: pointing to the installation of RTI Connext DDS to be
+    used.
+
+-   `CONNEXTDDS_ARCH`: the RTI Connext DDS Target architecture to be used in
+    your system.
+
+-   `CMAKE_BUILD_TYPE`: specifies the build mode. Only Release is a valid value.
+
+-   `BUILD_SHARED_LIBS`: specifies the link mode. Only ``ON`` is a valid value.
+
+Build the example code by running the following command:
+
+.. code-block:: bash
+
+    mkdir build
+    cd build
+    cmake -DCONNEXTDDS_DIR=<connext dir> \
+          -DCONNEXTDDS_ARCH=<connext architecture> \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=ON ..
+    cmake --build .
+
+.. note::
+
+    When using a multi-configuration generator, make sure you specify
+    the `--config` parameter in your call to `cmake --build .`. In general,
+    it's a good practice to always provide it.
+
+In case you are using Windows x64, you have to add the option -A in the cmake
+command as follow:
+
+.. code-block:: bash
+
+    cmake -DCONNEXTDDS_DIR=<connext dir> \
+          -DCONNEXTDDS_ARCH=<connext architecture> \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=ON .. \
+          -A x64
+
+
+Upon success it will create a shared library file with name ``(lib)rtirspyprocessor``
+in the build directory.
+
+Customizing the Build
+---------------------
+
+Configuring Connext DDS Installation Path and Architecture
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The CMake build infrastructure will try to guess the location of your Connext
+DDS installation and the Connext DDS architecture based on the default settings
+for your host platform.If you installed Connext DDS in a custom location, you
+can use the ``CONNEXTDDS_DIR`` variable to indicate the path to your RTI Connext DDS
+installation folder. For example:
+
+.. code-block:: bash
+
+    cmake -DCONNEXTDDS_DIR=/home/rti/rti_connext_dds-x.y.z ..
+
+
+Also, If you installed libraries for multiple target architecture on your system
+(i.e., you installed more than one target rtipkg), you can use the
+``CONNEXTDDS_ARCH`` variable to indicate the architecture of the specific libraries
+you want to link against. For example:
+
+.. code-block:: bash
+
+    cmake -DCONNEXTDDS_ARCH=x64Linux3gcc5.4.0 ..
+
+
+Plug-in Usage
+=============
+
+The binding plug-in built in the previous step is a native dynamic library
+that will provide the binding between the Python Processor code and *Routing
+Service*.
+
+In order to provide your Python Processor implementation, you will need to
+load the binding plug-in as any other C/C++ plug-in Processor. That is, you
+will need to register the plug-in in XML as follows:
+
+.. code-block::xml
+
+    <plugin_library name="PythonPluginLib">
+        <processor_plugin name="PyProcessor">
+            <dll>rtirspyprocessor</dll>
+            <create_function>
+                PyProcessorPlugin_create_processor_plugin
+            </create_function>
+            <property>
+                <!-- list of configuration properties for this plug-in (See below) -->
+            </property>
+        </processor_plugin>
+    </plugin_library>
+
+and then refer to this plug-in from the Route where you want to install the
+Python Processor
+
+.. code-block::xml
+
+    <processor plugin_name="PythonPluginLib::PyProcessor">
+        <property>
+            <!-- List of configuration properties that you can pass to your
+                 Processor implementation
+            -->
+        </property>
+    </processor>
+
+The binding plug-in requires information about how to load your Python Processor
+implementation. This information is provided through the plugin configuration
+properties. The complete set of properties is shown in table below.
+
+.. list-table:: Plugin Configuration Properties
+    :name: TablePluginProperties
+    :widths: 30 10 60
+    :header-rows: 1
+
+    * - Name |br|
+        <base_name> = **rti.routing.proc.py**
+      - Value
+      - Description
+    * - **<base_name>.class_name**
+      - ``<string>``
+      - Name of class that implements the Processor.
+        Required
+    * - **<base_name>.module.name**
+      - ``<string>``
+      - Name of the Python module (file) that contains the code of your
+        Processor implementation. |br|
+        Required.
+    * - **<base_name>.module.path**
+      - ``<string>``
+      - Absolute or relative path to where the module file is located. |br|
+        Optional |br|
+        Default: **.** (working directory).
+    * - **<base_name>.module.autoreload**
+      - ``<boolean>``
+      - Specifies whether the module that contains the Processor implementation
+        is reloaded on each occurrence of an event dispatch. Note that that
+        reloading a module will affect only to the methods on the Processor
+        but not state of the Processor object already created. That is, new
+        method code can be executed but on the existing Processor instance.
+
+Creating your Processor
+-----------------------
+
+To make your Python *Processor* pluggable, you will need to define a class
+that inherits from ``pyproc.Processor``. This is an abstract class that defines
+an abstract method for each one of the possible event notifications from the
+Route.
+
+For example:
+
+.. code-block:: Python
+
+    import pyproc
+
+    class MyProcessor(proc.Processor):
+        def on_data_available(self, route):
+            ...
+
+
 API Overview
 ============
 
@@ -59,7 +233,6 @@ The Processor Python API component model is shown below.
 
 .. figure:: ./images/RouterPythonProcessor.svg
     :align: center
-    :width: 600px
 
 
 The Python API model is based of two different of components:
@@ -90,425 +263,19 @@ components as needed. The user provides an implementation of a ``Processor``
 whereas the other objects are constructed and provided by *Routing Service* during
 the execution of the ``Processor``
 
-API Reference
--------------
 
+API Documentation
+-----------------
 
-.. class:: Processor
+Documentation for all the components of the Processor API is embedded in
+the definition of the types in the `proc` module. You can build the documentation
+to generate an html output as follows:
 
-    Processor interface definition. Provides a way to process Route events and
-    control the data forwarding process.
+... code-block:: bash
 
-    A Processor receives event notifications from its Route owner in the form
-    of operation callbacks. Each event occurrence will be dispatched to the
-    Processor by calling the corresponding method.
+    cd ./api_doc
+    sphinx-build . <output_dir>
 
-    Each dispatching method has a signature according to the event kind and
-    data it is associated with. Each event is associated with a Route state;
-    hence limitations and constraints may apply individually to each method.
+where ``<output_dir`` is the directory path where you want the generated html
+files to be placed.
 
-    Note that throwing an exception while processing any of the event
-    notifications is allowed. In this situation, the Route owner will reject
-    the events and none of the associated post conditions will be applied,
-    including state transitions.
-
-    Multi-threading safety:
-    Partially Safe All operations on a concrete Processor object are safe and
-    always serialized on a given Session. Operations on different Processor
-    objects may be called concurrently if they belong to different Routes.
-
-    .. method:: on_input_enabled(route, input)
-        :abstractmethod:
-
-        Notification of the INPUT_ENABLED event.
-
-        This operation is called when an Input enabled event occurs that affects
-        any of the inputs contained in the owner Route.
-
-        This operation is called right after the affected Input has been enabled.
-
-        :param Route route: owner that contains this Processor
-        :param input:  The just enabled Input
-
-    .. method:: on_input_disabled(route, input)
-        :abstractmethod:
-
-        Notification of the INPUT_DISABLED event.
-
-        This operation is called when an INPUT_DISABLED event occurs that
-        affects any of the inputs contained in the owner Route.
-
-        This operation is called right before the affected Input is disabled.
-
-        :param Route route: owner that contains this Processor
-        :type route: Route
-        :param input:  The Input about to be disabled.
-
-    .. method:: on_output_enabled(route, output)
-        :abstractmethod:
-
-        Notification of the OUTPUT_ENABLED event.
-
-        This operation is called when an Output enabled event occurs that affects
-        any of the outputs contained in the owner Route.
-
-        This operation is called right after the affected Output has been enabled.
-
-        :param route: owner that contains this Processor
-        :type route: Route
-        :param output:  The just enabled Output.
-
-
-    .. method:: on_output_disabled(route, output)
-        :abstractmethod:
-
-        Notification of the OUTPUT_DISABLED event.
-
-        This operation is called when an OUTPUT_DISABLED event occurs that
-        affects any of the outputs contained in the owner Route.
-
-        This operation is called right before the affected Output is disabled.
-
-        :param route: owner that contains this Processor
-        :type route: Route
-        :param output:  The Output about to be disabled.
-
-    .. method:: on_start(route)
-        :abstractmethod:
-
-        Notification of the Route started event.
-
-        This operation is called right before the Route enters the STARTED
-        state. At the time this operation is called, all the inputs and
-        outputs within the Route are enabled.
-
-
-        :param route: owner that contains this Processor
-        :type route: Route
-
-
-    .. method:: on_stop(route)
-        :abstractmethod:
-
-        Notification of the Route stopped event.
-
-        This operation is called right before the Route enters the STOPPED
-        state. At the time this operation is called, all the inputs and
-        outputs within the Route are still enabled.
-
-        :param route: owner that contains this Processor
-        :type route: Route
-
-    .. method:: on_run(route)
-        :abstractmethod:
-
-        Notification of the Route RUN event.
-
-        This operation is called right before the Route enters the RUNNING
-        state. This operation is called after the Route went to STARTED after
-        a successful notification to this Processor,
-
-        If the Route was manually paused before via an Administration call,
-        this operation will not be called until a manual run operation is performed.
-
-
-        :param route: owner that contains this Processor
-        :type route: Route
-
-    .. method:: on_pause(route)
-        :abstractmethod:
-
-        Notification of the Route paused event.
-
-        This operation is called right before the Route enters the PAUSED
-        state. At the time this operation is called, all the inputs and
-        outputs within the Route are still enabled.
-
-        :param route: owner that contains this Processor
-        :type route: Route
-
-    .. method:: on_periodic_action(route)
-        :abstractmethod:
-
-        Notification of the Route periodic action event.
-
-        This operation is called periodically at the rate specified in the
-        parent Session of the Route owner.
-
-        Periodic notifications can occur only while the Route is in the
-        RUNNING state.
-
-        Implementations are allowed to access any of the Input and Output of
-        the owner Route to read and write data, respectively.
-
-        :param route: owner that contains this Processor
-        :type route: Route
-
-    .. method:: on_data_available(route)
-        :abstractmethod:
-
-        Notification of the Route DATA_AVAILABLE event.
-
-        This operation is called each time any of the inputs contained in
-        the owner Route is notified about new data. Notifications of this
-        event can occur only while the Route is in the RUNNING state.
-
-        Implementations are allowed to access any of the Input and Output of
-        the owner Route to read and write data, respectively.
-
-        :param route: owner that contains this Processor
-        :type route: Route
-
-
-.. class:: Route
-
-    .. attribute:: inputs
-
-        An iterator to the enabled Input objects within this Route. Note that
-        this iterator can be used only when the Route is started. Otherwise,
-        the iterator will be finished.
-
-        Immutable.
-
-    .. attribute:: outputs
-
-        An iterator to the enabled Outputs objects within this Route. Note that
-        this iterator can be used only when the Route is started. Otherwise,
-        the iterator will be finished.
-
-        Immutable.
-
-
-    .. method:: operator.getitem(name) -> Input or Output
-
-        Looks up an input or an output by its name (as specified in the
-        configuration)
-
-        :param str name: The name of the input or output
-
-        :returns: The specified Input or Output object
-        :rtype: An Input or Output object, or None if the input our output does
-                not exist or it's not enabled.
-
-.. class:: Input
-
-    Generic Representation of a Route's input
-
-    .. attribute:: info
-
-        Returns a dictionary containing information that uniquely describes this
-        Input. The dictionary contains the following key items:
-
-        .. code-block:: Python
-
-            {
-                "index" : <int>,
-                "name": <str>,
-                "stream_info" : {
-                    "stream_name" : <str>,
-                    "type_name":  <str>
-                }
-            }
-
-        where
-            - ``index``: The access index of this Input
-            - ``name`` : The name of this Input, as specified in the XML
-              configuration
-            - ``stream_info``:
-                - ``stream_name``: Name of the stream this input reads
-                   data from
-                - ``type_name``: Registered name of the type associated to the
-                  stream and data
-
-        Immutable.
-
-    .. method:: take([selector]) -> list[Sample]
-
-        Returns all the available samples in this Input.
-
-        This operation will call the take operation on the underlying StreamReader.
-        Note that this operation will remove all the taken samples from the
-        StreamReader's cache.
-
-        An optional selector as a dictionary can be provided in order to read
-        subset of data (e.g., a particular instance). The selector can
-        contain the following key items:
-
-         .. code-block:: Python
-
-            {
-                "sample_state" : <int>,
-                "view_state" : <int>,
-                "instance_state" : <int>,
-                "max_samples" : <int>,
-                "instance" : {<bool>, <Bytes>},
-                "next_instance" :{<bool>, <Bytes>},
-                "filter" : {
-                    "expression" : <str>
-                }
-            }
-
-         where
-            - ``sample_state``: The sample read state as DDS_SampleStateKind
-            - ``view_state`` : the instance view state as DDS_ViewStateKind
-            - ``instance_state`` : the instance view state as DDS_InstanteStateKind
-            - ``max_samples`` : Choose to only read/take up to a maximum number of samples.
-            - ``instance`` :
-                - ``valid:``: Indicates whether the handle is valid or not
-                - ``value``: A 16-byte list representing a handle to the instance
-                  to read/take. Setting this field causes the read/take to access
-                  only samples belonging the single
-                  specified instance handle. The read/take may
-                  operation may fail if the handle does not
-                  correspond to an existing data-object known to this Input.
-            - ``next_instance``:
-                - ``valid``: Indicates whether the handle is valid or not
-                - `value``: A 16-byte list representing a handle to the
-                  instance from which to read next. The subsequent read or take
-                  operation to access only samples belonging a single instance
-                  whose handle is considered 'next' after the provided handle.
-                  The accessed samples will all belong to the 'next' instance with
-                  handle 'greater' than the specified previous handle that has
-                  available samples. An invalid handle can be provided as
-                  "less than" any valid handle so the read/take will return the
-                  samples for the instance that has the smallest handle among a
-                  all the instances that contain available samples.
-
-                  Note that it is possible to provide a handle that does not c
-                  correspond to an instance currently managed by the underlying
-                  StreamReader.
-            - ``filter``: A dictionary that represents a content filter
-                - ``expression``: An expression selection a subset of data based
-                  on its content.
-
-        :param dict selector: A dictionary that represents a selector of a
-                              a subset of the data to be read.
-
-        :returns: A list of read samples.
-        :rtype: List of Sample
-
-
-.. class:: Output
-
-    Generic Representation of a Route's output
-
-    .. attribute:: info
-
-        Returns a dictionary containing information that uniquely describes this
-        Output. The dictionary contains the following key items:
-
-        .. code-block:: Python
-
-            {
-                "index" : <int>,
-                "name": <str>,
-                "stream_info" : {
-                    "stream_name" : <str>,
-                    "type_name":  <str>
-                }
-            }
-
-        where
-            - ``index``: The access index of this Output
-            - ``name`` : The name of this Output, as specified in the XML
-              configuration
-            - ``stream_info``:
-                - ``stream_name``: Name of the stream this output writes
-                   data to
-                - ``type_name``: Registered name of the type associated to the
-                  stream and data
-
-        Immutable.
-
-    .. method:: write(data[,info])
-
-        Writes the specified data and info sample in this output.
-
-        This operation will call the write operation on the underlying StreamWriter.
-
-        :param dict data: A dictionary that represents the sample data, in the
-         same format as in Sample.data
-
-        :param dict info: A dictionary that represents the sample info, in the
-         same format as in Sample.info
-
-.. class:: Sample
-
-    Representation of sample objects returned by a read/take operation.
-    It's composed of two items, the sample data and sample info (metadata).
-
-    .. attribute:: data
-
-        User-data portion of the sample. Represented as dictionary where the key
-        is the  member name as string and the value is the member value. The
-        member values can be:
-
-        - Long: For all size of signed an unsigned integers, as well as enums
-        - Float: For float32 and float64
-        - Unicode: for string and wide-string
-        - List: for arrays and sequences
-        - Dictionary: For complex member
-
-        For example consider the following type in IDL:
-
-        .. code-block:: C
-
-            struct OtherType {
-                int16 m_short;
-                string m_string
-            };
-
-            struct MyType{
-                int64 m_long;
-                int32 m_array[10]
-                OtherType m_other;
-            };
-
-        A sample of ``MyType`` would map to the following dictionary:
-
-        .. code-block:: Python
-
-            {
-                "m_long" : <int>,
-                "m_array": [<integer_0>, ... ,<integer_9>]
-                "m_other" : {
-                    "m_short" : <int>,
-                    "m_string":  <str>
-                }
-            }
-
-        Mutable.
-
-    .. attribute:: info
-
-       Metadata portion of the sample (as DDS_SampleInfo). Represented as
-       dictionary where the key is the  member name as string and the value
-       is the member value.
-
-       Supported members are:
-
-        .. code-block:: Python
-
-            {
-                "instance_handle" : {<bool>, <Bytes>},
-                "publication_handle": {<bool>, <Bytes>},
-                "sample_state" : <int>,
-                "view_state" : <int>,
-                "instance_state" : <int>,
-                "valid_data" : <int>,
-                "flag" : <int>,
-                "original_publication_virtual_sequence_number" : {<int>, <int>},
-                "original_publication_virtual_guid" : [<int>],
-                "related_original_publication_virtual_sequence_number" :{ <int>, <int>},
-                "related_original_publication_virtual_guid" : [<int>],
-                "reception_sequence_number" :{<int>, <int>},
-                "publication_sequence_number" : {<int>, <int>},
-                "reception_timestamp" : {<int>, <int>},
-                "source_timestamp" : {<int>, <int>}
-            }
-
-        For information about each key of the ``info`` dictionary, see
-        RTI Connext DDS User's Manual.
-
-
-        Mutable.
