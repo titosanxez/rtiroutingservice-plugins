@@ -211,7 +211,7 @@ Creating your Processor
 -----------------------
 
 To make your Python *Processor* pluggable, you will need to define a class
-that inherits from ``pyproc.Processor``. This is an abstract class that defines
+that inherits from ``proc.Processor``. This is an abstract class that defines
 an abstract method for each one of the possible event notifications from the
 Route.
 
@@ -219,7 +219,7 @@ For example:
 
 .. code-block:: Python
 
-    import pyproc
+    import proc
 
     class MyProcessor(proc.Processor):
         def on_data_available(self, route):
@@ -271,7 +271,7 @@ Documentation for all the components of the Processor API is embedded in
 the definition of the types in the `proc` module. You can build the documentation
 to generate an html output as follows:
 
-... code-block:: bash
+.. code-block:: bash
 
     cd ./api_doc
     sphinx-build . <output_dir>

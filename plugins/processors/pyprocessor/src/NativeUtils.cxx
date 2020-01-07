@@ -19,7 +19,6 @@ namespace rti { namespace routing { namespace py {
         PyErr_Print();\
         throw dds::core::Error("from_native: error setting member=" #MEMBER);\
     }\
-    py_guard.release(); \
 }
 
 PyObject* from_native(

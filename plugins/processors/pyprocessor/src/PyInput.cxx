@@ -179,7 +179,7 @@ static PyMethodDef PyInput_g_methods[] = {
 
 static PyTypeObject PyInput_g_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "pyproc.Input",
+    .tp_name = "proc.Input",
     .tp_doc = "Input object",
     .tp_basicsize = sizeof(PyInput),
     .tp_itemsize = 0,
@@ -229,15 +229,12 @@ PyObject* PyInput::sample_list(
 
     // Convert samples into dictionaries
     for (int32_t i = 0; i < loaned_samples.length_; ++i) {
-        if (PyList_SetItem(
+        PyList_SET_ITEM(
                 py_list,
                 i,
                 new PySample(
-                        static_cast<const native_data*>(loaned_samples.sample_array_[i]),
-                        static_cast<const native_info*>(loaned_samples.info_array_[i]))) != 0) {
-            PyErr_Print();
-            throw dds::core::Error("PyInput::sample_list: error creating sample item");
-        }
+                    static_cast<const native_data*> (loaned_samples.sample_array_[i]),
+                    static_cast<const native_info*> (loaned_samples.info_array_[i])));
     }
 
     return py_list;

@@ -85,7 +85,7 @@ static PyMethodDef PyOutput_g_methods[] = {
 
 static PyTypeObject PyOutput_g_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "pyproc.Output",
+    .tp_name = "proc.Output",
     .tp_doc = "Output object",
     .tp_basicsize = sizeof(PyOutput),
     .tp_itemsize = 0,
@@ -134,7 +134,7 @@ void PyOutput::build_info()
 {
     int32_t index = this->index_;
     RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), index, PyLong_FromLong);
-    
+
     const char *name =
             RTI_RoutingServiceRoute_get_output_name(native_route(), get());
     RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), name, PyUnicode_FromString);

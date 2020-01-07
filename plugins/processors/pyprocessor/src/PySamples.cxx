@@ -94,7 +94,7 @@ static PyMethodDef PySample_g_methods[] = {
 
 static PyTypeObject PySample_g_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "pyproc.Sample",
+    .tp_name = "proc.Sample",
     .tp_doc = "Loaned Sample object",
     .tp_basicsize = sizeof(PySample),
     .tp_itemsize = 0,

@@ -90,7 +90,7 @@ static PyMappingMethods PyInputAccessor_g_mapping = {
 
 static PyTypeObject PyInputAccessor_g_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "pyproc.InputAccessor",
+    .tp_name = "proc.InputAccessor",
     .tp_doc = "InputAccessor object",
     .tp_basicsize = sizeof(PyInputAccessor),
     .tp_itemsize = 0,
@@ -183,7 +183,7 @@ static PyMappingMethods PyOutputAccessor_g_mapping = {
 
 static PyTypeObject PyOutputAccessor_g_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "pyproc.OutputAccessor",
+    .tp_name = "proc.OutputAccessor",
     .tp_doc = "OutputAccessor object",
     .tp_basicsize = sizeof(PyOutputAccessor),
     .tp_itemsize = 0,
