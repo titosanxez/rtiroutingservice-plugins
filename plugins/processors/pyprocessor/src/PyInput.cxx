@@ -82,7 +82,7 @@ void PySelectorBuilder::build(PyObject *py_dict)
     py_item = PyDict_GetItemString(py_dict, "instance_state");
     if (py_item != NULL) {
         RTI_PY_CHECK_AND_THROW(Long, py_item, instance_state);
-        state.view_state = (DDS_ViewStateKind) PyLong_AsLong(py_item);
+        state.instance_state = (DDS_InstanceStateKind) PyLong_AsLong(py_item);
     }
 
     // instance

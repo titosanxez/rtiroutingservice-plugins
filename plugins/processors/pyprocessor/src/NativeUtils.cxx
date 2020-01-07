@@ -441,8 +441,8 @@ PyObject* from_native(const DDS_SampleInfo& info)
     PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, related_original_publication_virtual_guid);
     PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, reception_sequence_number);
     PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, publication_sequence_number);
-    //PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, reception_timestamp);
-    //PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, source_timestamp);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, reception_timestamp);
+    PY_NATIVE_UTILS_FROM_NATIVE_MEMBER(info, source_timestamp);
 
     return py_dict.release();
 }
