@@ -83,6 +83,7 @@ private:
                         "DynamicDataConverter::build_dictionary: error element="
                         + std::to_string(context_stack_.top().index));
             }
+            py_value.release();
         }
     }
 

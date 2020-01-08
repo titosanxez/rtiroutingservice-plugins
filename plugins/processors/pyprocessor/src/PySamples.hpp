@@ -25,6 +25,7 @@
 
 namespace rti { namespace routing { namespace py {
 
+class PyOutput;
 
 class PySampleType : public PyObject {
 public:
@@ -41,16 +42,26 @@ public:
     ~PySample();
 
     /* python methods */
+    static PyObject* valid_data(PySample *self, void* closure);
     static PyObject* data(PySample *self, void* closure);
     static PyObject* info(PySample *self, void* closure);
+    static Py_ssize_t count(PySample *self);
+    static PyObject* binary(PySample *self, PyObject *key);
+    static int set_item(PySample *, PyObject *, PyObject *);
+
+
+    static PyObject * print(PySample *self);
+    static PyObject * representation(PySample *self);
 
 private:
     static PyObject* build_data(
             const native_data* data,
             const native_info *info);
 private:
+    friend class PyOutput;
     PyObject* data_; //as dictionary
     PyObject *info_; //as dictionary
+    PyObject *valid_;
 };
 
 } } }

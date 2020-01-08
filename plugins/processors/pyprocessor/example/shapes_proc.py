@@ -15,16 +15,16 @@ class ShapesProcessor(proc.Processor):
         # equivalent instance from the Circle topic
         squares = route["Square"].read()
         for square in squares:
-            if square.info['valid_data']:
+            if square.valid_data:
                 # read equivalent existing instance in the Circles Topic
                 selector = dict(instance=square.info['instance_handle'])
                 circles = route['Circle'].read(selector)
-                if len(circles) != 0 and circles[0].info['valid_data'] :
+                if len(circles) != 0 and circles[0].valid_data :
                     square.data['shapesize'] += circles[0].data['y']
 
                 route['Triangle'].write(square.data)
             else:
                 # dispose instance
-                route['Triangle'].write(square.data, square.info)
+                route['Triangle'].write(square)
                 # clear cache
                 route['Square'].take(dict(instance=square.info['instance_handle']))

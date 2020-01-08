@@ -26,15 +26,25 @@ PyObject* PyOutput::write(PyOutput *self, PyObject *args)
             reinterpret_cast<void **>(&self->output_info_);
     const RTI_RoutingServiceSampleInfo *out_info_list = NULL;
 
+    PyObject *py_sample = NULL;
     PyObject *py_data = NULL;
     PyObject *py_info = NULL;
     if (!PyArg_ParseTuple(
             args,
-            "O!|O!",
-            &PyDict_Type,
-            &py_data,
-            &PyDict_Type,
-            &py_info)) {
+            "O",
+            &py_sample)) {
+        return NULL;
+    }
+
+    if (py_sample->ob_type == PySampleType::type()) {
+        py_data = ((PySample *) py_sample)->data_;
+        py_info = ((PySample *) py_sample)->info_;
+    } else if (PyDict_Check(py_sample)) {
+        py_data = py_sample;
+    } else {
+        PyErr_SetString(
+                PyExc_ValueError,
+                "sample parameter must be a Sample or data dictionary");
         return NULL;
     }
 

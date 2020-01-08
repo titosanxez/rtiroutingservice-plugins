@@ -379,20 +379,22 @@ class Output:
 
         NotImplemented
 
-    def write(self, data, info = None):
+    def write(self, sample):
         """
         Writes the specified data and info sample in this output.
 
         This operation will call the write operation on the underlying StreamWriter.
 
-        If an ``info`` parameter is provider, the underlying StreamWriter::write
-        implementation may use it to propagate some of the metadata elements.
+        If an Sample as` parameter is provided, the underlying StreamWriter::write
+        implementation may use the ``info`` portion to propagate some of the
+        metadata elements.
 
-        :param dict data: A dictionary that represents the sample data, in the
-         same format as in Sample.data
+        :param sample: An object representing a Sample or a data dictionary. If
+         a dictionary, it must represent the sample data in the same format as
+         in Sample.data
+        :type sample: dict or Sample
 
-        :param dict info: Optional. A dictionary that represents the sample
-         info, in the same format as in Sample.info.
+
         """
         NotImplemented
 
@@ -401,84 +403,90 @@ class Sample:
 
     It's composed of two items, the sample data and sample info (metadata).
 
+    :attribute: valid_data (bool)
+     Indicates whether the data portion of the sample has valid readable
+     content.
+
+    :attribute: data (dict) User-data portion of the sample.
+
+    Represented as dictionary where the key is the  member name as string
+    and the value is the member value. The member values can be:
+
+    - Long: For all size of signed an unsigned integers, as well as enums
+    - Float: For float32 and float64
+    - Unicode: for string and wide-string
+    - List: for arrays and sequences
+    - Dictionary: For complex member
+
+    For example consider the following type in IDL:
+
+    .. code-block:: C
+
+        struct OtherType {
+            int16 m_short;
+            string m_string
+        };
+
+        struct MyType{
+            int64 m_long;
+            int32 m_array[10]
+            OtherType m_other;
+        };
+
+    A sample of ``MyType`` would map to the following dictionary:
+
+    .. code-block:: Python
+
+        {
+            "m_long" : <int>,
+            "m_array": [<integer_0>, ... ,<integer_9>]
+            "m_other" : {
+                "m_short" : <int>,
+                "m_string":  <str>
+            }
+        }
+
+    Mutable.
+
+    :attribute: info (dict) Metadata portion of the sample (as DDS_SampleInfo).
+
+    Represented as dictionary where the key is the  member name as string
+    and the value is the member value.
+
+    Supported members are:
+
+    .. code-block:: Python
+
+        {
+            "instance_handle" : {<bool>, <Bytes>},
+            "publication_handle": {<bool>, <Bytes>},
+            "sample_state" : <int>,
+            "view_state" : <int>,
+            "instance_state" : <int>,
+            "valid_data" : <int>,
+            "flag" : <int>,
+            "original_publication_virtual_sequence_number" : {<int>, <int>},
+            "original_publication_virtual_guid" : [<int>],
+            "related_original_publication_virtual_sequence_number" :{ <int>, <int>},
+            "related_original_publication_virtual_guid" : [<int>],
+            "reception_sequence_number" :{<int>, <int>},
+            "publication_sequence_number" : {<int>, <int>},
+            "reception_timestamp" : {<int>, <int>},
+            "source_timestamp" : {<int>, <int>}
+        }
+
+    For information about each key of the ``info`` dictionary, see
+    RTI Connext DDS User's Manual.
+
     """
-    def __init(self):
-        self.data
-        """ User-data portion of the sample.
 
-        Represented as dictionary where the key is the  member name as string
-        and the value is the member value. The member values can be:
+    def __getitem__(self, name):
+        """ Provides access to the specified member of the data portion of
+        this Sample.
 
-        - Long: For all size of signed an unsigned integers, as well as enums
-        - Float: For float32 and float64
-        - Unicode: for string and wide-string
-        - List: for arrays and sequences
-        - Dictionary: For complex member
-
-        For example consider the following type in IDL:
-
-        .. code-block:: C
-
-            struct OtherType {
-                int16 m_short;
-                string m_string
-            };
-
-            struct MyType{
-                int64 m_long;
-                int32 m_array[10]
-                OtherType m_other;
-            };
-
-        A sample of ``MyType`` would map to the following dictionary:
-
-        .. code-block:: Python
-
-            {
-                "m_long" : <int>,
-                "m_array": [<integer_0>, ... ,<integer_9>]
-                "m_other" : {
-                    "m_short" : <int>,
-                    "m_string":  <str>
-                }
-            }
-
-        Mutable.
+        This is equivalent to calling Sample.data[name]
 
         """
-
-        self.info
-
-        """  Metadata portion of the sample (as DDS_SampleInfo).
-
-        Represented as dictionary where the key is the  member name as string
-        and the value is the member value.
-
-        Supported members are:
-
-        .. code-block:: Python
-
-            {
-                "instance_handle" : {<bool>, <Bytes>},
-                "publication_handle": {<bool>, <Bytes>},
-                "sample_state" : <int>,
-                "view_state" : <int>,
-                "instance_state" : <int>,
-                "valid_data" : <int>,
-                "flag" : <int>,
-                "original_publication_virtual_sequence_number" : {<int>, <int>},
-                "original_publication_virtual_guid" : [<int>],
-                "related_original_publication_virtual_sequence_number" :{ <int>, <int>},
-                "related_original_publication_virtual_guid" : [<int>],
-                "reception_sequence_number" :{<int>, <int>},
-                "publication_sequence_number" : {<int>, <int>},
-                "reception_timestamp" : {<int>, <int>},
-                "source_timestamp" : {<int>, <int>}
-            }
-
-        For information about each key of the ``info`` dictionary, see
-        RTI Connext DDS User's Manual.
-
-        """
+        NotImplemented
 
 

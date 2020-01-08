@@ -7,8 +7,8 @@
 Processor Python API
 ********************
 
-A plug-in implementation of the Processor C/C++ API that provides a binding for
-the Python language.
+A Python binding for the Routing Service Processor API. Implemented as a
+native (C/C++) plug-in that provides the conversions to and from Python.
 
 Concept
 =======
@@ -49,9 +49,9 @@ inputs, merging the data together to write a single output sample.
             samples_second = route.inputs[1].read(dict(instance=first.info['instance_handle']))
 
             output_data = {
-                id:first.data['id'],
-                config:first.data['config'],
-                periodic:samples_second[0].data['latency']
+                'id':first.data['id'],
+                'config':first['config'],
+                'periodic':samples_second[0]['latency']
             }
 
             route.outputs[0].write(output_data)

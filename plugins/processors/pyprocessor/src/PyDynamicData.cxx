@@ -88,6 +88,7 @@ void DynamicDataConverter::from_native_primitive<std::string, const char*>(
                     "DynamicDataConverter::build_dictionary: error element="
                     + std::to_string(context_stack_.top().index));
         }
+        py_value.release();
     }
 }
 
@@ -146,6 +147,7 @@ void DynamicDataConverter::from_wstring(
                     "DynamicDataConverter::build_dictionary: error element="
                     + std::to_string(context_stack_.top().index));
         }
+        py_wstring.release();
     }
 }
 
@@ -190,6 +192,7 @@ void DynamicDataConverter::build_dictionary(
                         + member_info.member_name().to_std_string()
                         + " at index=" + std::to_string(context_stack_.top().index));
             }
+            py_guard.release();
         }
 
 
@@ -303,6 +306,7 @@ void DynamicDataConverter::build_dictionary(
                                     + member_info.member_name().to_std_string()
                                     + " at index=" + std::to_string(context_stack_.top().index));
                         }
+                        py_guard.release();
                     }
                     context_stack_.push(py_list);
                 }
@@ -599,18 +603,7 @@ void DynamicDataConverter::to_native_wstring(
     assert(PyUnicode_Check(py_value));
 
      /* iterate wstring */
-    Py_ssize_t wstring_size = PyUnicode_GET_LENGTH(py_value);
     DDS_Wchar *wstring_value = PyUnicode_2BYTE_DATA(py_value);
-//    if (PyBytes_AsStringAndSize(
-//            py_value,
-//            (char **) &wstring_value,
-//            &wstring_size) != 0) {
-//        PyErr_Print();
-//        throw dds::core::Error(
-//                "set_wstring: error get wstring value from python object for member id="
-//                + std::to_string(member_info.member_index()));
-//    }
-
     DDS_ReturnCode_t ret_code = DDS_DynamicData_set_wstring(
             &(data.native()),
             NULL,

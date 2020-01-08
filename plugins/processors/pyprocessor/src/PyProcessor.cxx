@@ -263,14 +263,14 @@ void PyProcessor::forward_on_route_event(
         }
             break;
 
-            case RTI_ROUTING_SERVICE_ROUTE_EVENT_OUTPUT_DISABLED:
-        {
 
+        case RTI_ROUTING_SERVICE_ROUTE_EVENT_OUTPUT_DISABLED:
+        {
             void *affected_entity =
                     RTI_RoutingServiceRouteEvent_get_affected_entity(native_route_event);
             RTI_RoutingServiceStreamWriterExt *native_output =
                     static_cast<RTI_RoutingServiceStreamWriterExt *> (affected_entity);
-            PyObjectGuard pyt_output =
+            PyObjectGuard py_output =
                     forwarder->py_route_->output(native_output);
             if (PyObject_CallMethod(
                     forwarder->plugin_->processor_class_,
@@ -278,9 +278,9 @@ void PyProcessor::forward_on_route_event(
                     "OOO",
                     forwarder->py_processor_,
                     forwarder->py_route_,
-                    pyt_output.get()) == NULL) {
+                    py_output.get()) == NULL) {
                 PyErr_Print();
-                pyt_output.release();
+                py_output.release();
                 throw dds::core::Error(std::string(
                         PyProcessor_METHOD_NAMES[event_kind])
                         + ": error calling Python processor");
@@ -342,6 +342,7 @@ void PyProcessor::forward_on_route_event(
  * --- PyProcessorPlugin --------------------------------------------------
  */
 PyProcessorPluginProperty::PyProcessorPluginProperty()
+        : module_autoreload_(false)
 {
 
 }
@@ -456,6 +457,16 @@ PyProcessorPlugin::PyProcessorPlugin(
             }
             property_.autoreload(boolValue ? true : false);
         }
+    }
+
+    if (property_.module().empty()) {
+        throw dds::core::Error(
+                "PyProcessorPlugin: module name must be provided");
+    }
+
+    if (property_.class_name().empty()) {
+        throw dds::core::Error(
+                "PyProcessorPlugin: Processor class name must be provided");
     }
 
     /* update python global path so it can find the user module */

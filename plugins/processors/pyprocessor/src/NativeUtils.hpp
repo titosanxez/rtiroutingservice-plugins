@@ -87,7 +87,6 @@ struct PyAllocatorGeneric : public PyObject
     PyAllocatorGeneric()
     {
         PyObject_Init(this, T::type());
-        //T::type()->tp_init(this, NULL, NULL);
     }
 
     void* operator new(size_t size)
