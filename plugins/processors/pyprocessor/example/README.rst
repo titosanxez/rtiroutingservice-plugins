@@ -1,4 +1,5 @@
-# Example Code: Routing Service Processor
+Example Code: Routing Service Processor
+=======================================
 
 Below there are the instructions to run this example. All the commands
 and syntax used assume a Unix-based system. If you run this example in a
@@ -7,7 +8,8 @@ different architecture, please adapt the commands accordingly.
 This example requires building the Python binding plug-in, as explained in the
 top-level documentation.
 
-## Running the Example
+Running the Example
+-------------------
 
 To run this example you will need two instances of *RTI Shapes Demo* and a
 single instance of *RoutingService*.
@@ -49,7 +51,7 @@ the binding plug-in.
 
         %NDDSHOME%\bin\rtiroutingservice ^
             -cfgFile ..\RsShapesProcessor.xml ^
-            -cfgName RsShapesAggregator 
+            -cfgName RsShapesAggregator
 
     And for *Unix*:
 
