@@ -346,7 +346,7 @@ DDS_InstanceHandle_t& to_native(DDS_InstanceHandle_t& dest, PyObject* py_handle)
                  + std::to_string(MIG_RTPS_KEY_HASH_MAX_LENGTH));
     }
 
-    std::memcpy(
+    memcpy(
             dest.keyHash.value,
             PyBytes_AsString(py_key_hash),
             MIG_RTPS_KEY_HASH_MAX_LENGTH);
@@ -405,7 +405,7 @@ DDS_GUID_t& to_native(
                 + std::to_string(MIG_RTPS_KEY_HASH_MAX_LENGTH));
     }
 
-    std::memcpy(
+    memcpy(
             dest.value,
             PyBytes_AsString(py_guid),
             MIG_RTPS_KEY_HASH_MAX_LENGTH);

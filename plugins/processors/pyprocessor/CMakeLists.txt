@@ -10,7 +10,7 @@
 #  use or inability to use the software.
 
 
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.10)
 project (ShapesProcessor)
 
 # Find RTI Connext dependencies
@@ -24,7 +24,7 @@ find_package(
     )
 
 
-find_package(PythonLibs 3.6 REQUIRED)
+find_package(PythonLibs 3.5 REQUIRED)
 
 # Define the library that will provide the  Processor plugin
 add_library(rtirspyprocessor

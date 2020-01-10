@@ -88,22 +88,26 @@ static PyMappingMethods PyInputAccessor_g_mapping = {
 };
 
 
-static PyTypeObject PyInputAccessor_g_type = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "proc.InputAccessor",
-    .tp_doc = "InputAccessor object",
-    .tp_basicsize = sizeof(PyInputAccessor),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyAllocatorGeneric<PyInputAccessorType, PyInputAccessor>::delete_object,
-    .tp_as_mapping = &PyInputAccessor_g_mapping,
-    .tp_iter = (getiterfunc)  PyInputAccessor::get_iterator,
-    .tp_iternext = (iternextfunc) PyInputAccessor::iterator_next
-};
-
 PyTypeObject* PyInputAccessorType::type()
 {
-    return &PyInputAccessor_g_type;
+    static PyTypeObject _input_ac_type;
+    static bool _init = false;
+
+    if (!_init) {
+        RTIOsapiMemory_zero(&_input_ac_type, sizeof (_input_ac_type));
+        _input_ac_type.tp_name = "proc.InputAccessor";
+        _input_ac_type.tp_doc = "InputAccessor object";
+        _input_ac_type.tp_basicsize = sizeof (PyInputAccessor);
+        _input_ac_type.tp_itemsize = 0;
+        _input_ac_type.tp_flags = Py_TPFLAGS_DEFAULT;
+        _input_ac_type.tp_dealloc = PyAllocatorGeneric<PyInputAccessorType, PyInputAccessor>::delete_object;
+        _input_ac_type.tp_as_mapping = &PyInputAccessor_g_mapping;
+        _input_ac_type.tp_iter = (getiterfunc) PyInputAccessor::get_iterator;
+        _input_ac_type.tp_iternext = (iternextfunc) PyInputAccessor::iterator_next;
+        _init = true;
+    }
+
+    return &_input_ac_type;
 }
 
 const std::string& PyInputAccessorType::name()
@@ -180,23 +184,26 @@ static PyMappingMethods PyOutputAccessor_g_mapping = {
     .mp_subscript = (binaryfunc) PyOutputAccessor::binary
 };
 
-
-static PyTypeObject PyOutputAccessor_g_type = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "proc.OutputAccessor",
-    .tp_doc = "OutputAccessor object",
-    .tp_basicsize = sizeof(PyOutputAccessor),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyAllocatorGeneric<PyOutputAccessorType, PyOutputAccessor>::delete_object,
-    .tp_as_mapping = &PyOutputAccessor_g_mapping,
-    .tp_iter = (getiterfunc)  PyOutputAccessor::get_iterator,
-    .tp_iternext = (iternextfunc) PyOutputAccessor::iterator_next
-};
-
 PyTypeObject* PyOutputAccessorType::type()
 {
-    return &PyOutputAccessor_g_type;
+    static PyTypeObject _output_ac_type;
+    static bool _init = false;
+
+    if (!_init) {
+        RTIOsapiMemory_zero(&_output_ac_type, sizeof (_output_ac_type));
+        _output_ac_type.tp_name = "proc.InputAccessor";
+        _output_ac_type.tp_doc = "InputAccessor object";
+        _output_ac_type.tp_basicsize = sizeof (PyOutputAccessorType);
+        _output_ac_type.tp_itemsize = 0;
+        _output_ac_type.tp_flags = Py_TPFLAGS_DEFAULT;
+        _output_ac_type.tp_dealloc = PyAllocatorGeneric<PyOutputAccessorType, PyOutputAccessor>::delete_object;
+        _output_ac_type.tp_as_mapping = &PyOutputAccessor_g_mapping;
+        _output_ac_type.tp_iter = (getiterfunc) PyOutputAccessor::get_iterator;
+        _output_ac_type.tp_iternext = (iternextfunc) PyOutputAccessor::iterator_next;
+        _init = true;
+    }
+
+    return &_output_ac_type;
 }
 
 const std::string& PyOutputAccessorType::name()
@@ -282,21 +289,6 @@ static PyMethodDef PyRoute_g_methods[] = {
 static PyMappingMethods PyRoute_g_mapping = {
     .mp_length = (lenfunc) PyRoute::port_count,
     .mp_subscript = (binaryfunc) PyRoute::binary
-};
-
-
-
-static PyTypeObject PyRoute_g_type = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "proc.Route",
-    .tp_doc = "Route object",
-    .tp_basicsize = sizeof(PyRoute),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyAllocatorGeneric<PyRouteType, PyRoute>::delete_object,
-    .tp_methods = PyRoute_g_methods,
-    .tp_getset = PyRoute_getsetters,
-    .tp_as_mapping = &PyRoute_g_mapping
 };
 
 
@@ -402,7 +394,23 @@ PyOutput * PyRoute::output(RTI_RoutingServiceStreamWriterExt* native_output)
 
 PyTypeObject* PyRouteType::type()
 {
-    return &PyRoute_g_type;
+    static PyTypeObject _route_type;
+    static bool _init = false;
+
+    if (!_init) {
+        RTIOsapiMemory_zero(&_route_type, sizeof (_route_type));
+        _route_type.tp_name = "proc.Route";
+        _route_type.tp_doc = "Route object";
+        _route_type.tp_basicsize = sizeof (PyInput);
+        _route_type.tp_itemsize = 0;
+        _route_type.tp_flags = Py_TPFLAGS_DEFAULT;
+        _route_type.tp_dealloc = PyAllocatorGeneric<PyRouteType, PyRoute>::delete_object;
+        _route_type.tp_methods = PyRoute_g_methods;
+        _route_type.tp_as_mapping = &PyRoute_g_mapping;
+        _init = true;
+    }
+
+    return &_route_type;
 }
 
 const std::string& PyRouteType::name()

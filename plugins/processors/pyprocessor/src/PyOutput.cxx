@@ -93,18 +93,6 @@ static PyMethodDef PyOutput_g_methods[] = {
     {NULL}  /* Sentinel */
 };
 
-static PyTypeObject PyOutput_g_type = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "proc.Output",
-    .tp_doc = "Output object",
-    .tp_basicsize = sizeof(PyOutput),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyNativeWrapper<PyOutputType, PyOutput>::delete_object,
-    .tp_methods = PyOutput_g_methods,
-    .tp_getset = PyOutput_g_getsetters
-};
-
 const dds::core::xtypes::DynamicType& dynamic_type(
         RTI_RoutingServiceStreamWriterExt* native_output,
         RTI_RoutingServiceRoute *native_route)
@@ -160,7 +148,23 @@ void PyOutput::build_info()
 
 PyTypeObject* PyOutputType::type()
 {
-    return &PyOutput_g_type;
+    static PyTypeObject _output_type;
+    static bool _init = false;
+
+    if (!_init) {
+        RTIOsapiMemory_zero(&_output_type, sizeof (_output_type));
+        _output_type.tp_name = "proc.Output";
+        _output_type.tp_doc = "Output object";
+        _output_type.tp_basicsize = sizeof (PyOutput);
+        _output_type.tp_itemsize = 0;
+        _output_type.tp_flags = Py_TPFLAGS_DEFAULT;
+        _output_type.tp_dealloc = PyNativeWrapper<PyOutputType, PyOutput>::delete_object;
+        _output_type.tp_methods = PyOutput_g_methods;
+        _output_type.tp_getset = PyOutput_g_getsetters;
+        _init = true;
+    }
+
+    return &_output_type;
 }
 
 const std::string& PyOutputType::name()

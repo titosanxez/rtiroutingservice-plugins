@@ -177,18 +177,6 @@ static PyMethodDef PyInput_g_methods[] = {
     {NULL}  /* Sentinel */
 };
 
-static PyTypeObject PyInput_g_type = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "proc.Input",
-    .tp_doc = "Input object",
-    .tp_basicsize = sizeof(PyInput),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = PyNativeWrapper<PyInputType, PyInput>::delete_object,
-    .tp_methods = PyInput_g_methods,
-    .tp_getset = PyInput_g_getsetters
-};
-
 
 PyInput::PyInput(
         RTI_RoutingServiceStreamReaderExt* native,
@@ -316,11 +304,25 @@ void PyInput::build_info()
      RTI_PY_ADD_DICT_ITEM_VALUE(info_.get(), stream_info, from_native);
 }
 
-
-
 PyTypeObject* PyInputType::type()
 {
-    return &PyInput_g_type;
+    static PyTypeObject _input_type;
+    static bool _init = false;
+
+    if (!_init) {
+        RTIOsapiMemory_zero(&_input_type, sizeof (_input_type));
+        _input_type.tp_name = "proc.Input";
+        _input_type.tp_doc = "Input object";
+        _input_type.tp_basicsize = sizeof (PyInput);
+        _input_type.tp_itemsize = 0;
+        _input_type.tp_flags = Py_TPFLAGS_DEFAULT;
+        _input_type.tp_dealloc = PyNativeWrapper<PyInputType, PyInput>::delete_object;
+        _input_type.tp_methods = PyInput_g_methods;
+        _input_type.tp_getset = PyInput_g_getsetters;
+        _init = true;
+    }
+
+    return &_input_type;
 }
 
 const std::string& PyInputType::name()

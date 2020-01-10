@@ -101,7 +101,7 @@ int PySample::set_item(PySample* self, PyObject *key , PyObject *value)
     if (value == NULL) {
         return PyObject_DelItem(self->data_, key);
     }
-    
+
     return PyObject_SetItem(self->data_, key, value);
 }
 
@@ -153,25 +153,31 @@ static PyMethodDef PySample_g_methods[] = {
     {NULL}  /* Sentinel */
 };
 
-static PyTypeObject PySample_g_type = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "proc.Sample",
-    .tp_doc = "Sample object",
-    .tp_basicsize = sizeof(PySample),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = NULL,
-    .tp_dealloc = PyAllocatorGeneric<PySampleType, PySample>::delete_object,
-    .tp_methods = PySample_g_methods,
-    .tp_getset = PySample_g_getsetters,
-    .tp_as_mapping = &PySample_g_mapping,
-    .tp_str = (reprfunc) PySample::print,
-    .tp_repr = (reprfunc) PySample::representation
-};
+
 
 PyTypeObject* PySampleType::type()
 {
-    return &PySample_g_type;
+    static PyTypeObject _sample_type;
+    static bool _init = false;
+
+    if (!_init) {
+        RTIOsapiMemory_zero(&_sample_type, sizeof (_sample_type));
+        _sample_type.tp_name = "proc.Sample";
+        _sample_type.tp_basicsize = sizeof (PySample);
+        _sample_type.tp_itemsize = 0;
+        _sample_type.tp_dealloc = PyAllocatorGeneric<PySampleType, PySample>::delete_object;
+        _sample_type.tp_repr = (reprfunc) PySample::representation;
+        _sample_type.tp_as_mapping = &PySample_g_mapping;
+        _sample_type.tp_str = (reprfunc) PySample::print;
+        _sample_type.tp_flags = Py_TPFLAGS_DEFAULT;
+        _sample_type.tp_doc = "Sample object";
+        _sample_type.tp_methods = PySample_g_methods;
+        _sample_type.tp_getset = PySample_g_getsetters;
+        _sample_type.tp_new = NULL;
+        _init = true;
+    }
+
+    return &_sample_type;
 }
 
 const std::string& PySampleType::name()

@@ -66,9 +66,9 @@ Requirements
 To build and run the python binding plug-in you will need:
 
 - RTI Connext Professional version 6.0.1 or higher.
-- CMake version 3.7 or higher
+- CMake version 3.10 or higher
 - A target platform supported by *RTI* *RoutingService*.
-- Python 3.6.1
+- Python 3.5
 
 Steps
 -----
