@@ -7,19 +7,6 @@
 
 namespace rti { namespace routing { namespace py {
 
-struct PythonInitializer {
-
-    PythonInitializer()
-    {
-        Py_Initialize();
-    }
-
-    ~PythonInitializer()
-    {
-        Py_Finalize();
-    }
-};
-
 struct PyObjectGuard {
 public:
     PyObjectGuard(PyObject *object) : object_(object)
@@ -155,6 +142,16 @@ protected:
     }\
 }
 
+
+#define RTI_PY_TO_NATIVE_MEMBER(DICT, DATA, MEMBER, TYPE) \
+{\
+    PyObject *py_item = PyDict_GetItemString((DICT), #MEMBER); \
+    if (py_item != NULL) {\
+        to_native((DATA).MEMBER, py_item); \
+    }\
+}
+
+
 template <typename T, typename U>
 PyObject* from_native_array(
         const T* array,
@@ -245,6 +242,9 @@ DDS_InstanceStateKind to_native(
         DDS_InstanceStateKind& dest,
         PyObject* py_state);
 
+char* to_native(
+        char*&,
+        PyObject* py_name);
 
 DDS_GUID_t& to_native(
         DDS_GUID_t& dest,
@@ -253,6 +253,10 @@ DDS_GUID_t& to_native(
 DDS_SampleInfo& to_native(
         DDS_SampleInfo&,
         PyObject* py_info);
+
+RTI_RoutingServiceProperties& to_native(
+        struct RTI_RoutingServiceProperties& dest,
+        PyObject *py_dict);
 
 
 } } }

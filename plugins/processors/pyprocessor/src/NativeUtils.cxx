@@ -1,5 +1,6 @@
 #include "Python.h"
 
+#include "dds_c/dds_c_string.h"
 #include "NativeUtils.hpp"
 
 namespace rti { namespace routing { namespace py {
@@ -413,7 +414,52 @@ DDS_GUID_t& to_native(
     return dest;
 }
 
+char* to_native(char*& dest, PyObject* py_name)
+{
+    if (!PyUnicode_Check(py_name)) {
+        throw dds::core::Error("to_native: object is not a long");
+    }
 
+    DDS_String_replace(&dest, PyUnicode_AsUTF8(py_name));
+
+    return dest;
+}
+
+
+RTI_RoutingServiceProperties& to_native(
+        struct RTI_RoutingServiceProperties& dest,
+        PyObject *py_dict)
+{
+    if (!PyDict_Check(py_dict)) {
+        throw dds::core::Error("to_native: object is not a dictionary");
+    }
+
+
+    PyObjectGuard keys = PyDict_Keys(py_dict);
+    if (!RTIOsapiHeap_allocateArray(
+            &dest.properties,
+            PyList_Size(keys.get()),
+            RTI_RoutingServiceNameValue)) {
+        throw dds::core::Error("to_native: error allocating name-value array");
+    }
+    dest.count = PyList_Size(keys.get());
+
+    for (int32_t i = 0; i <  dest.count; i++) {
+        PyObject *name = PyList_GetItem(keys.get(), i);
+        if (PyUnicode_Check(name)) {
+            throw dds::core::Error("to_native: keys are not string");
+        }
+        PyObject *value = PyDict_GetItem(py_dict, name);
+        if (PyUnicode_Check(value)) {
+            throw dds::core::Error("to_native: values are not string");
+        }
+
+        dest.properties[i].name = DDS_String_dup(PyUnicode_AsUTF8(name));
+        dest.properties[i].value = DDS_String_dup(PyUnicode_AsUTF8(value));
+    }
+
+    return dest;
+}
 
 /*
  * --- PySampleInfoConverter --------------------------------------------------

@@ -1,13 +1,14 @@
 import os
 import sys
-import time
 import json
 import pprint
 import inspect
+import time
 
 sys.path.insert(0, os.path.abspath('..'))
 
 from rti.routing import proc
+from rti.routing import service
 
 port_info_map = {
     'Input1': {
@@ -155,3 +156,19 @@ def check_ports(route, stream_ports):
         assert port == route[port.info['name']]
         port_count += 1
     assert port_count == 2
+
+
+
+if __name__== "__main__":
+    service.RoutingService.init()
+
+    service = service.RoutingService(dict(\
+            cfg_file='../test/RsPyTest.xml',
+            service_name='RsPyTest',
+            domain_id_base=195,
+            service_verbosity=4))
+    service.start()
+
+    time.sleep(5)
+
+

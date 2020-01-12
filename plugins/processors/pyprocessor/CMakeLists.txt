@@ -24,23 +24,25 @@ find_package(
     )
 
 
-find_package(PythonLibs 3.5 REQUIRED)
+find_package(PythonLibs 3.7 REQUIRED)
 
 # Define the library that will provide the  Processor plugin
-add_library(rtirspyprocessor
+add_library(rtipyroutingservice
     "${CMAKE_CURRENT_SOURCE_DIR}/src/NativeUtils.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyServiceGlobals.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyDynamicData.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PySamples.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyInput.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyOutput.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/PyRoute.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyProcessor.cxx")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyProcessor.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/PyService.cxx")
 
 # Set target properties for lang requirement output library name
-set_target_properties(rtirspyprocessor
+set_target_properties(rtipyroutingservice
     PROPERTIES
         CXX_STANDARD 11
-        OUTPUT_NAME_DEBUG rtirspyprocessord
+        OUTPUT_NAME_DEBUG rtipyroutingserviced
         LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
         LIBRARY_OUTPUT_DIRECTORY_RELEASE "${output_dir}"
         LIBRARY_OUTPUT_DIRECTORY_DEBUG "${output_dir}"
@@ -52,12 +54,13 @@ set_target_properties(rtirspyprocessor
         RUNTIME_OUTPUT_DIRECTORY_DEBUG "${output_dir}"
 )
 
-target_link_libraries(rtirspyprocessor
+target_link_libraries(rtipyroutingservice
     RTIConnextDDS::cpp2_api
     RTIConnextDDS::routing_service_infrastructure
+    RTIConnextDDS::routing_service_c
     ${PYTHON_LIBRARIES})
 
-target_include_directories(rtirspyprocessor
+target_include_directories(rtipyroutingservice
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${PYTHON_INCLUDE_DIRS}"

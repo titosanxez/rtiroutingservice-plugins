@@ -116,7 +116,7 @@ command as follow:
           -A x64
 
 
-Upon success it will create a shared library file with name ``(lib)rtirspyprocessor``
+Upon success it will create a shared library file with name ``(lib)rtipyroutingservice``
 in the build directory.
 
 Customizing the Build

@@ -568,16 +568,16 @@ void DynamicDataConverter::to_native_primitive<double>(
 
 
 template <>
-void DynamicDataConverter::to_native_primitive<char*>(
+void DynamicDataConverter::to_native_primitive<const char*>(
         dds::core::xtypes::DynamicData& data,
         const rti::core::xtypes::DynamicDataMemberInfo& member_info,
         PyObject* py_value,
-        std::function<char*(PyObject*) > as_primitve)
+        std::function<const char*(PyObject*) > as_primitve)
 
 {
     using dds::core::xtypes::TypeKind;
 
-    char* primitive_value = as_primitve(py_value);
+    const char* primitive_value = as_primitve(py_value);
 
     switch (member_info.member_kind().underlying()) {
 
@@ -664,7 +664,7 @@ void DynamicDataConverter::build_dynamic_data(
         // of top is a dict, the entry is the key
         if (PyDict_Check(context_stack_.top())) {
             value = PyDict_GetItem(context_stack_.top(), entry);
-            char *member_name = PyUnicode_AsUTF8(entry);
+            const char *member_name = PyUnicode_AsUTF8(entry);
             if (member_name == NULL) {
                 PyErr_Print();
                 throw dds::core::Error(
@@ -751,7 +751,7 @@ void DynamicDataConverter::build_dynamic_data(
                     value,
                     PyFloat_AsDouble);
         } else if (PyUnicode_Check(value)) {
-            to_native_primitive<char*>(
+            to_native_primitive<const char*>(
                     data,
                     aux_minfo,
                     value,

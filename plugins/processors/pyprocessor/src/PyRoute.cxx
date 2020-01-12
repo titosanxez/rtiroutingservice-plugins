@@ -24,8 +24,7 @@ namespace rti { namespace routing { namespace py {
  * --- PyInputAccessor --------------------------------------------------------
  */
 PyInputAccessor::PyInputAccessor(PyRoute* py_route, int32_t count = 0)
-        :
-        PyAllocatorGeneric(),
+        : PyAllocatorGeneric(),
         py_route_(py_route),
         count_(count),
         iterator_(0)
@@ -95,7 +94,7 @@ PyTypeObject* PyInputAccessorType::type()
 
     if (!_init) {
         RTIOsapiMemory_zero(&_input_ac_type, sizeof (_input_ac_type));
-        _input_ac_type.tp_name = "proc.InputAccessor";
+        _input_ac_type.tp_name = "rti.routing.proc.InputAccessor";
         _input_ac_type.tp_doc = "InputAccessor object";
         _input_ac_type.tp_basicsize = sizeof (PyInputAccessor);
         _input_ac_type.tp_itemsize = 0;
@@ -191,9 +190,9 @@ PyTypeObject* PyOutputAccessorType::type()
 
     if (!_init) {
         RTIOsapiMemory_zero(&_output_ac_type, sizeof (_output_ac_type));
-        _output_ac_type.tp_name = "proc.InputAccessor";
-        _output_ac_type.tp_doc = "InputAccessor object";
-        _output_ac_type.tp_basicsize = sizeof (PyOutputAccessorType);
+        _output_ac_type.tp_name = "rti.routing.proc.OutputAccessor";
+        _output_ac_type.tp_doc = "OutputAccessor object";
+        _output_ac_type.tp_basicsize = sizeof (PyOutputAccessor);
         _output_ac_type.tp_itemsize = 0;
         _output_ac_type.tp_flags = Py_TPFLAGS_DEFAULT;
         _output_ac_type.tp_dealloc = PyAllocatorGeneric<PyOutputAccessorType, PyOutputAccessor>::delete_object;
@@ -399,7 +398,7 @@ PyTypeObject* PyRouteType::type()
 
     if (!_init) {
         RTIOsapiMemory_zero(&_route_type, sizeof (_route_type));
-        _route_type.tp_name = "proc.Route";
+        _route_type.tp_name = "rti.routing.proc.Route";
         _route_type.tp_doc = "Route object";
         _route_type.tp_basicsize = sizeof (PyInput);
         _route_type.tp_itemsize = 0;
@@ -407,6 +406,7 @@ PyTypeObject* PyRouteType::type()
         _route_type.tp_dealloc = PyAllocatorGeneric<PyRouteType, PyRoute>::delete_object;
         _route_type.tp_methods = PyRoute_g_methods;
         _route_type.tp_as_mapping = &PyRoute_g_mapping;
+        _route_type.tp_getset = PyRoute_getsetters;
         _init = true;
     }
 

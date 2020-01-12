@@ -116,7 +116,7 @@ void PySelectorBuilder::build(PyObject *py_dict)
         PyObject *py_exp = PyDict_GetItemString(py_item, "expression");
         if (py_exp != NULL) {
             RTI_PY_CHECK_AND_THROW(Unicode, py_exp, expression);
-            state.content.expression = PyUnicode_AsUTF8(py_exp);
+            state.content.expression = (char *) PyUnicode_AsUTF8(py_exp);
         }
         create_content_query();
     }
@@ -311,7 +311,7 @@ PyTypeObject* PyInputType::type()
 
     if (!_init) {
         RTIOsapiMemory_zero(&_input_type, sizeof (_input_type));
-        _input_type.tp_name = "proc.Input";
+        _input_type.tp_name = "rti.routing.proc.Input";
         _input_type.tp_doc = "Input object";
         _input_type.tp_basicsize = sizeof (PyInput);
         _input_type.tp_itemsize = 0;

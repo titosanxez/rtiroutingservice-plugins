@@ -57,7 +57,6 @@ class PyProcessor;
 class PyProcessorPlugin {
 
 public:
-    static const std::string BASE_PROCESSOR_MODULE_NAME;
     static const std::string BASE_PROCESSOR_TYPE_NAME;
     static const std::string MODULE_PROPERTY_NAME;
     static const std::string MODULE_PATH_PROPERTY_NAME;
@@ -107,8 +106,6 @@ private:
     PyProcessorPluginProperty property_;
     /* user module */
     PyObjectGuard py_user_module_;
-    /* Reference to the pyproc module */
-    PyObject *pyproc_module_;
     /* Reference to the Processor base type*/
     PyObject *pyproc_type_;
     /*

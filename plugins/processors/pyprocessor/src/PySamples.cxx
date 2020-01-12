@@ -162,7 +162,7 @@ PyTypeObject* PySampleType::type()
 
     if (!_init) {
         RTIOsapiMemory_zero(&_sample_type, sizeof (_sample_type));
-        _sample_type.tp_name = "proc.Sample";
+        _sample_type.tp_name = "rti.routing.proc.Sample";
         _sample_type.tp_basicsize = sizeof (PySample);
         _sample_type.tp_itemsize = 0;
         _sample_type.tp_dealloc = PyAllocatorGeneric<PySampleType, PySample>::delete_object;

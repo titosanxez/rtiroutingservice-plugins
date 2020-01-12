@@ -21,6 +21,7 @@
 #include <dds/core/xtypes/DynamicData.hpp>
 #include <dds/core/xtypes/StructType.hpp>
 
+#include "PyServiceGlobals.hpp"
 #include "NativeUtils.hpp"
 #include "PyProcessor.hpp"
 #include "PyInput.hpp"
@@ -137,6 +138,18 @@ void PyProcessor::forward_on_route_event(
         RTI_RoutingServiceRouteEvent *native_route_event,
         RTI_RoutingServiceEnvironment *environment)
 {
+    PyGILState_STATE gstate = PyGILState_UNLOCKED;
+    bool needs_gil = false;
+    if (PyServiceGlobals::instance().from_service()) {
+        PyThreadState *tstate = PyThreadState_Swap(NULL);
+        if (tstate == NULL) {
+            needs_gil = true;
+            gstate = PyGILState_Ensure();
+        } else {
+            PyThreadState_Swap(tstate);
+        }
+    }
+
     PyProcessor *forwarder =
             static_cast<PyProcessor*> (native_processor_data);
 
@@ -335,6 +348,10 @@ void PyProcessor::forward_on_route_event(
                 "%s",
                 "unexpected exception");
     }
+
+    if (needs_gil) {
+        PyGILState_Release(gstate);
+    }
 }
 
 
@@ -400,9 +417,6 @@ bool PyProcessorPluginProperty::autoreload() const
 }
 
 
-const std::string PyProcessorPlugin::BASE_PROCESSOR_MODULE_NAME =
-        "rti.routing.proc";
-
 const std::string PyProcessorPlugin::BASE_PROCESSOR_TYPE_NAME =
         "Processor";
 
@@ -423,12 +437,10 @@ const std::string PyProcessorPlugin::MODULE_AUTORELOAD_PROPERTY_NAME =
 
 PyProcessorPlugin::PyProcessorPlugin(
         const struct RTI_RoutingServiceProperties *native_properties)
-        : pyproc_module_(NULL),
-          pyproc_type_(NULL),
+        : pyproc_type_(NULL),
           processor_class_(NULL)
 {
-    static PythonInitializer __python_init;
-
+    PyServiceGlobals::instance();
     // Check module properties
     property_.module_path(MODULE_PATH_VALUE_DEFAULT);
 
@@ -500,7 +512,7 @@ void PyProcessorPlugin::add_type()
     Py_INCREF(PYOBJECTTYPE::type());
     PyObjectGuard type_guard = (PyObject *) PYOBJECTTYPE::type();
     if (PyModule_AddObject(
-            pyproc_module_,
+            PyServiceGlobals::instance().proc_module(),
             PYOBJECTTYPE::name().c_str(),
             type_guard.get()) == -1) {
         PyErr_Print();
@@ -508,7 +520,7 @@ void PyProcessorPlugin::add_type()
                 "add_type: error inserting type="
                 + PYOBJECTTYPE::name()
                 + "in module="
-                + BASE_PROCESSOR_MODULE_NAME);
+                + PyServiceGlobals::PROCESSOR_MODULE_NAME);
     }
     type_guard.release();
 }
@@ -517,7 +529,7 @@ void PyProcessorPlugin::add_type()
 PyObject* PyProcessorPlugin::find_pyproc_type(const std::string& name)
 {
     PyObject *pyproc_type = PyDict_GetItemString(
-            PyModule_GetDict(pyproc_module_),
+            PyModule_GetDict(PyServiceGlobals::instance().proc_module()),
             name.c_str());
     if (pyproc_type == NULL) {
         PyErr_Print();
@@ -545,16 +557,7 @@ void PyProcessorPlugin::load_module()
         throw dds::core::Error("load_module: error getting user dictionary");
     }
 
-    // Obtain rti.routing.pyproc
-    pyproc_module_ = PyImport_AddModule(BASE_PROCESSOR_MODULE_NAME.c_str());
-    if (pyproc_module_ == NULL) {
-        PyErr_Print();
-        throw dds::core::Error(
-                "load_module: error importing "
-                + BASE_PROCESSOR_MODULE_NAME
-                + " module");
-    }
-
+    PyServiceGlobals::instance().init_processor();
     // Obtain pyproc.Processor type
     pyproc_type_= find_pyproc_type(BASE_PROCESSOR_TYPE_NAME);
     if (pyproc_type_ == NULL) {

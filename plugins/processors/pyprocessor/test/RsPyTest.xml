@@ -33,7 +33,7 @@
 
     <plugin_library name="PythonPluginLib">
         <processor_plugin name="PyProcessor">
-            <dll>rtirspyprocessor</dll>
+            <dll>rtipyroutingservice</dll>
             <create_function>
                 PyProcessorPlugin_create_processor_plugin
             </create_function>
