@@ -2,7 +2,7 @@ import sys
 from ctypes import util, PyDLL
 
 class RoutingService:
-    def __init__(self, property={}):
+    def __init__(self, property={}, **kwargs):
         NotImplemented
 
     @staticmethod

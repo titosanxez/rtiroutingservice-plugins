@@ -162,11 +162,11 @@ def check_ports(route, stream_ports):
 if __name__== "__main__":
     service.RoutingService.init()
 
-    service = service.RoutingService(dict(\
+    service = service.RoutingService(
             cfg_file='../test/RsPyTest.xml',
             service_name='RsPyTest',
             domain_id_base=195,
-            service_verbosity=4))
+            service_verbosity=4)
     service.start()
 
     time.sleep(5)

@@ -83,16 +83,32 @@ PyObject* PyService::new_service(
         PyObject* kwds)
 {
     PyObject *py_dict = NULL;
-    if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &py_dict)) {
+
+    if (!PyArg_ParseTuple(args, "|O!", &PyDict_Type, &py_dict)) {
         return NULL;
+    }
+    if (kwds != NULL) {
+        if (py_dict != NULL) {
+            PyErr_SetString(
+                    PyExc_ValueError,
+                    "specifying both arguments and keywords is not allowed");
+            return NULL;
+        }
+        assert(PyDict_Check(py_dict));
+        py_dict = kwds;
     }
 
     RTI_RoutingServiceProperty native_property =
             RTI_RoutingServiceProperty_INITIALIZER;
-
+    RTI_RoutingServiceProperty_copy(
+            &native_property,
+            &RTI_ROUTING_SERVICE_PROPERTY_DEFAULT);
     PyService *py_service = NULL;
     try {
-        py_service = new PyService(to_native(native_property, py_dict));
+        if (py_dict != NULL) {
+            to_native(native_property, py_dict);
+        }
+        py_service = new PyService(native_property);
     } catch (const std::exception& ex) {
         PyErr_SetString(PyExc_RuntimeError, ex.what());
     }
