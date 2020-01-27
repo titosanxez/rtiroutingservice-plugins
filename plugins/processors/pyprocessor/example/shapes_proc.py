@@ -30,13 +30,5 @@ class ShapesProcessor(proc.Processor):
                 # clear cache
                 route['Square'].take(dict(instance=shape.info['instance_handle']))
 
-#
-##
-#                H: loop the circles and find the instance
-#                   Copy the data instead of reusing the return list
-#                   Rename squares to shape
 
-
-
-#Before I forget: in the slide where you create a new RoutingService(). 1) You don’t need to pass the args as a dict . You can use **kwargs : new RoutingService(cfg_name='A', other_arg='B', …). In the function impl, the kwargs are passed as a dictionary. 2) Don’t use \ to break lines. It’s not required.
 #3) In Connector we have for square in squares.valid_data_iter: so you don’t have to check if square.valid_data.

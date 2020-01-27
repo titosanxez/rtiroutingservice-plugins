@@ -221,21 +221,6 @@ class Route:
         """
         NotImplemented
 
-
-    def __getitem__(self, name):
-        """returns an Input or Output
-
-        Looks up an input or an output by its name (as specified in the
-        configuration)
-
-        :param str name: The name of the input or output
-
-        :returns: The specified Input or Output object
-        :rtype: An Input or Output object, or None if the input our output does
-         not exist or it's not enabled.
-        """
-        NotImplemented
-
 class Input:
     """Generic Representation of a Route's input"""
 
@@ -331,7 +316,7 @@ class Input:
         :param dict selector: Ooptional. A dictionary that represents a selector of a
          a subset of the data to be read.
 
-        :returns: A list of read samples.
+        :returns: A LoanedSamples object.
         :rtype: List of Sample
         """
         NotImplemented
@@ -397,6 +382,23 @@ class Output:
 
         """
         NotImplemented
+
+
+class LoanedSamples:
+    """ Representation of a list of  samples loaned from an Input after
+        a read or take operation.
+
+        This class abstracts a list of Sample objects. The loane is returned
+        once the object is collected by the Python GC.
+
+        Note that this object must outlive any of its contained Sample objects.
+        If your Processor implementation keeps a reference to a loaned Sample
+        object and access it after the loaned is destroyed, a crash will occur.
+
+        If you want to keep a Sample object for future access, keeps its data or
+        info portion instead.
+
+    """
 
 class Sample:
     """  Representation of sample objects returned by a read/take operation.

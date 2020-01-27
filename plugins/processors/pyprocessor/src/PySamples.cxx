@@ -21,6 +21,14 @@ namespace rti { namespace routing { namespace py {
 
 PyObject* PySample::data(PySample* self, void*)
 {
+    if (self->data_ == NULL) {
+        try {
+            self->data_ = build_data(self->native_data_, self->native_info_);
+        } catch (const std::exception &ex) {
+            PyErr_Format(PyExc_RuntimeError, "%s", ex.what());
+            return NULL;
+        }
+    }
     Py_INCREF(self->data_);
     return self->data_;
 }
@@ -33,7 +41,13 @@ PyObject* PySample::valid_data(PySample* self, void*)
 
 PyObject* PySample::info(PySample* self, void*)
 {
-    if (self->info_ != NULL) {
+   if (self->info_ == NULL && self->native_info_ != NULL) {
+        try {
+            self->info_ = from_native(self->native_info_->extensions().native());
+        } catch (const std::exception &ex) {
+            PyErr_Format(PyExc_RuntimeError, "%s", ex.what());
+            return NULL;
+        }
         Py_INCREF(self->info_);
         return self->info_;
     }
@@ -59,10 +73,12 @@ PyObject* PySample::build_data(
 
 
 PySample::PySample(
-        const native_data* data, const native_info *info)
-        :data_(build_data(data, info)),
-        info_((info != NULL) ? from_native(info->extensions().native()) : NULL),
-        valid_(PyBool_FromLong(info->valid()))
+        const native_data* native_data, const native_info *native_info)
+        :data_(NULL),
+        info_(NULL),
+        valid_(PyBool_FromLong(native_info->valid())),
+        native_data_(native_data),
+        native_info_(native_info)
 {
 }
 
@@ -186,6 +202,105 @@ const std::string& PySampleType::name()
 
     return __name;
 }
+
+/*
+ * --- PyLoanedSamples --------------------------------------------------------
+ */
+
+PyLoanedSamples::PyLoanedSamples(
+        native_loaned_samples& native_samples,
+        RTI_RoutingServiceStreamReaderExt *native_input,
+        RTI_RoutingServiceEnvironment *native_env)
+        :py_list_(PyList_New(native_samples.length_)),
+        native_samples_(native_samples),
+        native_input_(native_input),
+        native_env_(native_env)
+{
+    // Convert samples into dictionaries
+    for (int32_t i = 0; i < native_samples.length_; ++i) {
+        PyList_SET_ITEM(
+                py_list_,
+                i,
+                new PySample(
+                    static_cast<const PySample::native_data*> (native_samples.sample_array_[i]),
+                    static_cast<const PySample::native_info*> (native_samples.info_array_[i])));
+    }
+}
+
+PyLoanedSamples::~PyLoanedSamples()
+{
+    native_input_->return_loan(
+            native_input_->stream_reader_data,
+            native_samples_.sample_array_,
+            native_samples_.info_array_,
+            native_samples_.length_,
+            native_env_);
+    if (RTI_RoutingServiceEnvironment_error_occurred(native_env_)) {
+        PyErr_Format(
+                PyExc_RuntimeError,
+                "%s",
+                RTI_RoutingServiceEnvironment_get_error_message(native_env_));
+    }
+}
+
+
+PyObject* PyLoanedSamples::binary(PyLoanedSamples* self, PyObject* key)
+{
+    return PyObject_GetItem(self->py_list_, key);
+}
+
+Py_ssize_t PyLoanedSamples::count(PyLoanedSamples* self)
+{
+    return PyList_GET_SIZE(self->py_list_);
+}
+
+PyObject* PyLoanedSamples::get_iterator(PyLoanedSamples* self)
+{
+    return PyObject_GetIter(self->py_list_);
+}
+
+PyObject* PyLoanedSamples::iterator_next(PyObject* self)
+{
+    return PyIter_Next(self);
+}
+
+static PyMappingMethods PyLoanedSamples_g_mapping = {
+    .mp_length = (lenfunc) PyLoanedSamples::binary,
+    .mp_subscript = (binaryfunc) PyLoanedSamples::binary,
+    .mp_ass_subscript = NULL
+};
+
+PyTypeObject* PyLoanedSamplesType::type()
+{
+     static PyTypeObject __loaned_samples_type;
+    static bool _init = false;
+
+    if (!_init) {
+        RTIOsapiMemory_zero(&__loaned_samples_type, sizeof (__loaned_samples_type));
+        __loaned_samples_type.tp_name = "rti.routing.proc.LoanedSamples";
+        __loaned_samples_type.tp_basicsize = sizeof (PyLoanedSamples);
+        __loaned_samples_type.tp_itemsize = 0;
+        __loaned_samples_type.tp_dealloc =
+                PyAllocatorGeneric<PyLoanedSamplesType, PyLoanedSamples>::delete_object;
+        __loaned_samples_type.tp_as_mapping = &PyLoanedSamples_g_mapping;
+        __loaned_samples_type.tp_iter = (getiterfunc) PyLoanedSamples::get_iterator;
+        __loaned_samples_type.tp_iternext = (iternextfunc) PyLoanedSamples::iterator_next;
+        __loaned_samples_type.tp_flags = Py_TPFLAGS_DEFAULT;
+        __loaned_samples_type.tp_doc = "LoanedSamples object";
+        __loaned_samples_type.tp_new = NULL;
+        _init = true;
+    }
+
+    return &__loaned_samples_type;
+}
+
+const std::string& PyLoanedSamplesType::name()
+{
+    static std::string __name("LoanedSamples");
+
+    return __name;
+}
+
 
 
 

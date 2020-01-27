@@ -73,8 +73,6 @@ public:
     static PyObject* read(PyInput *self, PyObject *arg);
 
 private:
-    static PyObject* sample_list(
-            const native_samples& loaned_samples);
     static PyObject* read_or_take_w_selector(
             PyInput *self,
             PyObject *args,

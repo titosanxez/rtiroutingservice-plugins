@@ -94,7 +94,7 @@ PyObject* PyService::new_service(
                     "specifying both arguments and keywords is not allowed");
             return NULL;
         }
-        assert(PyDict_Check(py_dict));
+        assert(PyDict_Check(kwds));
         py_dict = kwds;
     }
 

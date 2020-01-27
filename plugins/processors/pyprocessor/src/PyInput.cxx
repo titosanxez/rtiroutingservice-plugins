@@ -205,29 +205,6 @@ RTI_RoutingServiceRoute* PyInput::native_route()
     return native_route_;
 }
 
-PyObject* PyInput::sample_list(
-            const native_samples& loaned_samples)
-{
-
-    PyObject* py_list = PyList_New(loaned_samples.length_);
-    if (py_list == NULL) {
-        PyErr_Print();
-        throw dds::core::Error("PyInput::sample_list: error creating sample list");
-    }
-
-    // Convert samples into dictionaries
-    for (int32_t i = 0; i < loaned_samples.length_; ++i) {
-        PyList_SET_ITEM(
-                py_list,
-                i,
-                new PySample(
-                    static_cast<const native_data*> (loaned_samples.sample_array_[i]),
-                    static_cast<const native_info*> (loaned_samples.info_array_[i])));
-    }
-
-    return py_list;
-}
-
 PyObject* PyInput::read_or_take_w_selector(
         PyInput *self,
         PyObject *args,
@@ -265,24 +242,12 @@ PyObject* PyInput::read_or_take_w_selector(
                     self->native_env_);
         }
         RTI_ROUTING_THROW_ON_ENV_ERROR(self->native_env_);
-        py_samples = PyInput::sample_list(native_samples);
+        py_samples = new PyLoanedSamples(
+                native_samples,
+                self->get(),
+                self->native_env_);
     } catch (const std::exception &ex) {
         PyErr_Format(PyExc_RuntimeError, "%s", ex.what());
-        py_samples = NULL;
-    }
-
-    self->get()->return_loan(
-            self->get()->stream_reader_data,
-            native_samples.sample_array_,
-            native_samples.info_array_,
-            native_samples.length_,
-            self->native_env_);
-    if (RTI_RoutingServiceEnvironment_error_occurred(self->native_env_)) {
-        PyErr_Format(
-                PyExc_RuntimeError,
-                "%s",
-                RTI_RoutingServiceEnvironment_get_error_message(self->native_env_));
-        delete py_samples;
         py_samples = NULL;
     }
 

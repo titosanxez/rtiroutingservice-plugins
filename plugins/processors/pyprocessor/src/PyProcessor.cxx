@@ -572,6 +572,7 @@ void PyProcessorPlugin::load_module()
     add_type<PyInputType>();
     add_type<PyOutputType>();
     add_type<PySampleType>();
+    add_type<PyLoanedSamplesType>();
 
 
     processor_class_ = PyDict_GetItemString(
